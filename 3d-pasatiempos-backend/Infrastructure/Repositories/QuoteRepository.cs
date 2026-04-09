@@ -15,9 +15,9 @@ namespace _3d_pasatiempos_backend.Infrastructure.Repositories
         }
 
         /// <summary>
-        /// 
+        /// Method used to save the quote and its details in the database
         /// </summary>
-        /// <param name="pQuote"></param>
+        /// <param name="pQuote">Quote Model</param>
         /// <returns></returns>
         public async Task<bool> AddAsync(Quote pQuote)
         {
@@ -30,9 +30,9 @@ namespace _3d_pasatiempos_backend.Infrastructure.Repositories
         }
 
         /// <summary>
-        /// 
+        /// Method that obtains the details of the material used for manufacturing
         /// </summary>
-        /// <param name="pMaterialName"></param>
+        /// <param name="pMaterialName">Name of the material used</param>
         /// <returns></returns>
         public async Task<Material> GetMaterialDetail(string pMaterialName)
         {
@@ -45,9 +45,9 @@ namespace _3d_pasatiempos_backend.Infrastructure.Repositories
         }
 
         /// <summary>
-        /// 
+        /// Method used to obtain details of the printer used for manufacturing
         /// </summary>
-        /// <param name="pPrinterName"></param>
+        /// <param name="pPrinterName">Printer name</param>
         /// <returns></returns>
         public async Task<Printer> GetPrinterDetail(string pPrinterName)
         {

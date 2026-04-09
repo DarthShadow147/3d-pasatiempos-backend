@@ -15,9 +15,9 @@ namespace _3d_pasatiempos_backend.Application.Services
         }
 
         /// <summary>
-        /// 
+        /// Method used to create a new quote and calculate in detail the operating costs to execute it
         /// </summary>
-        /// <param name="pRequest"></param>
+        /// <param name="pRequest">Request for a new quote</param>
         /// <returns></returns>
         public async Task<bool> CreateQuoteAsync(CreateQuoteRequest pRequest)
         {
@@ -64,10 +64,10 @@ namespace _3d_pasatiempos_backend.Application.Services
         }
 
         /// <summary>
-        /// 
+        /// Method used to calculate execution time in minutes
         /// </summary>
-        /// <param name="pHours"></param>
-        /// <param name="pMinutes"></param>
+        /// <param name="pHours">Approximate hours</param>
+        /// <param name="pMinutes">Approximate minutes</param>
         /// <returns></returns>
         public int GetEstimatedHours(int pHours, int pMinutes)
         {
@@ -75,10 +75,10 @@ namespace _3d_pasatiempos_backend.Application.Services
         }
 
         /// <summary>
-        /// 
+        /// Method used to calculate the value per gram of material to be used
         /// </summary>
-        /// <param name="pPricePerGram"></param>
-        /// <param name="pGramUsed"></param>
+        /// <param name="pPricePerGram">Current parameterized price</param>
+        /// <param name="pGramUsed">Quantity in grams to use</param>
         /// <returns></returns>
         public decimal GetEstimatedPricePerGram(decimal pPricePerGram, int pGramUsed)
         {
@@ -86,11 +86,11 @@ namespace _3d_pasatiempos_backend.Application.Services
         }
 
         /// <summary>
-        /// 
+        /// Method used to calculate the wear value of the machine used
         /// </summary>
-        /// <param name="pUseCost"></param>
-        /// <param name="pHours"></param>
-        /// <param name="pMinutes"></param>
+        /// <param name="pUseCost">Cost of use, parameterized</param>
+        /// <param name="pHours">Approximate hours</param>
+        /// <param name="pMinutes">Approximate minutes</param>
         /// <returns></returns>
         public decimal GetEstimatedWearMachine(decimal pUseCost, int pHours, int pMinutes)
         {
@@ -99,12 +99,12 @@ namespace _3d_pasatiempos_backend.Application.Services
         }
 
         /// <summary>
-        /// 
+        /// Method used to calculate the energy expenditure in the production of an order
         /// </summary>
-        /// <param name="pPowerKWh"></param>
-        /// <param name="pPowerWh"></param>
-        /// <param name="pHours"></param>
-        /// <param name="pMinutes"></param>
+        /// <param name="pPowerKWh">Parameterizable kWh value</param>
+        /// <param name="pPowerWh">Parameterizable Wh value</param>
+        /// <param name="pHours">Approximate hours</param>
+        /// <param name="pMinutes">Approximate minutes</param>
         /// <returns></returns>
         public decimal GetEstimatedEnergyCost(decimal pPowerKWh, decimal pPowerWh, int pHours, int pMinutes)
         {
@@ -113,13 +113,13 @@ namespace _3d_pasatiempos_backend.Application.Services
         }
 
         /// <summary>
-        /// 
+        /// Method used to calculate the value per manufacturing defect
         /// </summary>
-        /// <param name="pMaterial"></param>
-        /// <param name="pPrinter"></param>
-        /// <param name="pGramUsed"></param>
-        /// <param name="pHours"></param>
-        /// <param name="pMinutes"></param>
+        /// <param name="pMaterial">Material object</param>
+        /// <param name="pPrinter">Printer object</param>
+        /// <param name="pGramUsed">Quantity in grams to use</param>
+        /// <param name="pHours">Approximate hours</param>
+        /// <param name="pMinutes">Approximate minutes</param>
         /// <returns></returns>
         public decimal GetEstimatedOverrunFailture(Material pMaterial, Printer pPrinter, int pGramUsed, int pHours, int pMinutes)
         {
@@ -132,14 +132,14 @@ namespace _3d_pasatiempos_backend.Application.Services
         }
 
         /// <summary>
-        /// 
+        /// Method used to calculate the total value of manufacturing
         /// </summary>
-        /// <param name="pMaterial"></param>
-        /// <param name="pPrinter"></param>
-        /// <param name="pGramUsed"></param>
-        /// <param name="pHours"></param>
-        /// <param name="pMinutes"></param>
-        /// <param name="pProfitPercentage"></param>
+        /// <param name="pMaterial">Material object</param>
+        /// <param name="pPrinter">Printer object</param>
+        /// <param name="pGramUsed">Quantity in grams to use</param>
+        /// <param name="pHours">Approximate hours</param>
+        /// <param name="pMinutes">pproximate minutes</param>
+        /// <param name="pProfitPercentage">Percentage of profits</param>
         /// <returns></returns>
         public decimal GetEstimatedTotalCost(Material pMaterial, Printer pPrinter, int pGramUsed, int pHours, int pMinutes, decimal pProfitPercentage)
         {

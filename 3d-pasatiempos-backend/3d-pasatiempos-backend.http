@@ -1,0 +1,6 @@
+@_3d_pasatiempos_backend_HostAddress = http://localhost:5059
+
+GET {{_3d_pasatiempos_backend_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###

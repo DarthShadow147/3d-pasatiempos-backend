@@ -6,6 +6,8 @@ namespace _3d_pasatiempos_backend.Application.Interfaces.QuoteInterfaces
     public interface IQuoteService
     {
         Task<bool> CreateQuoteAsync(CreateQuoteRequest pRequest);
+        Task<List<QuoteListResponse>> GetAllAsync(List<string> pStatuses = null);
+        Task<QuoteDetailResponse> GetDetailByIdAsync(int pQuoteId);
         int GetEstimatedHours(int pHours, int pMinutes);
         decimal GetEstimatedPricePerGram(decimal pPricePerGram, int pGramUsed);
         decimal GetEstimatedWearMachine(decimal pUseCost, int pHours, int pMinutes);

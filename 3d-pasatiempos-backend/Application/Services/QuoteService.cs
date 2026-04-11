@@ -1,4 +1,6 @@
-﻿using _3d_pasatiempos_backend.Application.Dtos.Quote;
+﻿using _3d_pasatiempos_backend.Application.Dtos.Customer;
+using _3d_pasatiempos_backend.Application.Dtos.Project;
+using _3d_pasatiempos_backend.Application.Dtos.Quote;
 using _3d_pasatiempos_backend.Application.Interfaces.QuoteInterfaces;
 using _3d_pasatiempos_backend.Domain.Entities;
 using _3d_pasatiempos_backend.Domain.Enums;
@@ -59,8 +61,83 @@ namespace _3d_pasatiempos_backend.Application.Services
             }
 
             lQuote.Total = lTotal;
-            await _QuoteRepository.AddAsync(lQuote);
-            return true;
+            var lTxResult = await _QuoteRepository.AddAsync(lQuote);
+
+            if (lTxResult)
+                return true;
+            else
+                return false;
+        }
+
+        /// <summary>
+        /// Method that obtains a summary of quotes by filtering by status
+        /// </summary>
+        /// <param name="pStatuses">Status of quotations</param>
+        /// <returns></returns>
+        public async Task<List<QuoteListResponse>> GetAllAsync(List<string> pStatuses = null)
+        {
+            if (pStatuses == null || pStatuses.Count == 0)
+                return await _QuoteRepository.GetAllAsync(null);
+
+            var lStatusEnum = new List<QuoteStatus>();
+
+            foreach (var lStatus in pStatuses)
+            {
+                if (!Enum.TryParse<QuoteStatus>(lStatus, true, out var lParsed))
+                    lStatusEnum.Add(lParsed);
+            }
+
+            if (lStatusEnum.Count == 0)
+                throw new Exception("Invalid status values");
+
+            return await _QuoteRepository.GetAllAsync(lStatusEnum);
+        }
+
+        /// <summary>
+        /// Method that obtains the complete details of the quotes, client, project (if applicable) and quote items
+        /// </summary>
+        /// <param name="pQuoteId">Quote ID</param>
+        /// <returns></returns>
+        public async Task<QuoteDetailResponse> GetDetailByIdAsync(int pQuoteId)
+        {
+            var lQuote = await _QuoteRepository.GetQuoteByIdAsync(pQuoteId) ?? throw new Exception("Quote not found");
+
+            return new QuoteDetailResponse
+            {
+                QuoteId = lQuote.Id,
+                QuoteDate = lQuote.CreatedAt,
+                QuoteStatus = lQuote.Status.ToString(),
+                QuoteTotal = lQuote.Total,
+
+                Customer = new CustomerResponse
+                {
+                    Id = lQuote.Customer.Id,
+                    Name = lQuote.Customer.Name,
+                    Phone = lQuote.Customer.Phone,
+                    Email = lQuote.Customer.Email
+                },
+
+                ProjectDetail = lQuote.Project == null ? null : new ProjectResponse
+                {
+                    ProjectId = lQuote.Project.Id,
+                    ProjectName = lQuote.Project.Name,
+                    Description = lQuote.Project.Description,
+                    Status = lQuote.Project.Status,
+                    Image = lQuote.Project.ImageUrl
+                },
+
+                Items = lQuote.Items.Select(i => new QuoteItemResponse
+                {
+                    QuoteItemId = i.Id,
+                    ProductName = i.ProductName,
+                    EstimatedGrams = i.EstimatedGrams,
+                    EstimatedTime = i.EstimatedHours,
+                    PricePerGram = i.PricePerGramUsed,
+                    CostPerKwh = i.CostPerKwhUsed,
+                    CostOverrunFail = i.CostOverrunFailture,
+                    ProfitPercentage = i.ProfitPercentage
+                }).ToList()
+            };
         }
 
         /// <summary>

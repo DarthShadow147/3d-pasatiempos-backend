@@ -15,11 +15,49 @@ namespace _3d_pasatiempos_backend.Api.Controllers
             _Service = Service;
         }
 
-        [HttpPost]
-        public async Task<IActionResult> Create([FromBody] CreateQuoteRequest pRequest)
+        [HttpGet("GetQuoteResume")]
+        public async Task<IActionResult> GetQuoteResume([FromQuery] List<string> pStatus = null)
         {
-            var lResult = await _Service.CreateQuoteAsync(pRequest);
-            return Ok(lResult);
+            try
+            {
+                var lResult = await _Service.GetAllAsync(pStatus);
+                return Ok(lResult);
+            }
+            catch (Exception lEx)
+            {
+                return BadRequest(lEx.Message);
+            }
+        }
+
+        [HttpGet("{pQuoteId}")]
+        public async Task<IActionResult> GetQuoteDetail(int pQuoteId)
+        {
+            try
+            {
+                var lResult = await _Service.GetDetailByIdAsync(pQuoteId);
+                return Ok(lResult);
+            }
+            catch (Exception lEx)
+            {
+                return NotFound(lEx.Message);
+            }
+        }
+
+        [HttpPost("CreateQuote")]
+        public async Task<IActionResult> CreateQuote([FromBody] CreateQuoteRequest pRequest)
+        {
+            try
+            {
+                var lResult = await _Service.CreateQuoteAsync(pRequest);
+                if (lResult)
+                    return Ok(lResult);
+                else
+                    return BadRequest("Error to generate quote");
+            }
+            catch (Exception lEx)
+            {
+                return BadRequest(lEx.Message);
+            }
         }
     }
 }

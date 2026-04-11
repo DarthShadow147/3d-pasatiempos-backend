@@ -59,5 +59,33 @@ namespace _3d_pasatiempos_backend.Api.Controllers
                 return BadRequest(lEx.Message);
             }
         }
+
+        [HttpPut("{pQuoteId}/approve")]
+        public async Task<IActionResult> Approve(int pQuoteId)
+        {
+            try
+            {
+                await _Service.ApproveAsync(pQuoteId);
+                return NoContent();
+            }
+            catch (Exception lEx)
+            {
+                return BadRequest(lEx.Message);
+            }
+        }
+
+        [HttpPut("{pQuoteId}/reject")]
+        public async Task<IActionResult> Reject(int pQuoteId, [FromBody] RejectQuoteRequest pRequest)
+        {
+            try
+            {
+                await _Service.RejectAsync(pQuoteId, pRequest.RejectReason);
+                return NoContent();
+            }
+            catch (Exception lEx)
+            {
+                return BadRequest(lEx.Message);
+            }
+        }
     }
 }

@@ -9,6 +9,7 @@ namespace _3d_pasatiempos_backend.Application.Interfaces.QuoteInterfaces
         Task<bool> AddAsync(Quote pQuote);
         Task<List<QuoteListResponse>> GetAllAsync(List<QuoteStatus> pStatuses = null);
         Task<Quote> GetQuoteByIdAsync(int pQuoteId);
+        Task UpdateAsync(Quote pQuote);
         Task<Material> GetMaterialDetail(string pMaterialName);
         Task<Printer> GetPrinterDetail(string pPrinterName);
     }

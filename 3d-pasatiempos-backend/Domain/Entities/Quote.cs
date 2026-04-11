@@ -10,6 +10,7 @@ namespace _3d_pasatiempos_backend.Domain.Entities
         public DateTime CreatedAt { get; set; }
         public QuoteStatus Status { get; set; }
         public decimal? Total { get; set; }
+        public string RejectReason { get; set; }
 
 
         public Customer Customer { get; set; } = null!;

@@ -214,6 +214,9 @@ namespace _3d_pasatiempos_backend.Infrastructure.Persistence.DataContext
                 entity.Property(e => e.Total)
                       .HasColumnType("decimal(12,2)")
                       .HasColumnName("total");
+
+                entity.Property(e => e.RejectReason)
+                      .HasColumnName("reject_reason");
             });
             #endregion
 

@@ -71,6 +71,17 @@ namespace _3d_pasatiempos_backend.Infrastructure.Repositories
         }
 
         /// <summary>
+        /// Method used to update the quotes table
+        /// </summary>
+        /// <param name="pQuote">Quote model</param>
+        /// <returns></returns>
+        public async Task UpdateAsync(Quote pQuote)
+        {
+            _Context.Quote.Update(pQuote);
+            await _Context.SaveChangesAsync();
+        }
+
+        /// <summary>
         /// Method that obtains the details of the material used for manufacturing
         /// </summary>
         /// <param name="pMaterialName">Name of the material used</param>

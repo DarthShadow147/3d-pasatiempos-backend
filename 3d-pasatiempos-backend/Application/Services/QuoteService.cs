@@ -141,6 +141,41 @@ namespace _3d_pasatiempos_backend.Application.Services
         }
 
         /// <summary>
+        /// Method used to approve the quotes
+        /// </summary>
+        /// <param name="pQuoteId">Quote ID</param>
+        /// <returns></returns>
+        public async Task ApproveAsync(int pQuoteId)
+        {
+            var lQuote = await _QuoteRepository.GetQuoteByIdAsync(pQuoteId) ?? throw new Exception("Quote not found");
+
+            if (lQuote.Status != QuoteStatus.PENDING)
+                throw new Exception("Only pending quotes can be approved");
+
+            lQuote.Status = QuoteStatus.APPROVED;
+            await _QuoteRepository.UpdateAsync(lQuote);
+        }
+
+        /// <summary>
+        /// Method used to reject the quotes
+        /// </summary>
+        /// <param name="pQuoteId">Quote ID</param>
+        /// <param name="pRejectReason">Reason for rejection</param>
+        /// <returns></returns>
+        public async Task RejectAsync(int pQuoteId, string pRejectReason)
+        {
+            var lQuote = await _QuoteRepository.GetQuoteByIdAsync(pQuoteId) ?? throw new Exception("Quote not found");
+
+            if (lQuote.Status != QuoteStatus.PENDING)
+                throw new Exception("Only pending quotes can be rejected");
+
+            lQuote.Status = QuoteStatus.REJECTED;
+            lQuote.RejectReason = pRejectReason;
+
+            await _QuoteRepository.UpdateAsync(lQuote);
+        }
+
+        /// <summary>
         /// Method used to calculate execution time in minutes
         /// </summary>
         /// <param name="pHours">Approximate hours</param>

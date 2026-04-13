@@ -1,4 +1,6 @@
-﻿namespace _3d_pasatiempos_backend.Domain.Entities
+﻿using _3d_pasatiempos_backend.Domain.Enums;
+
+namespace _3d_pasatiempos_backend.Domain.Entities
 {
     public class Project
     {
@@ -6,7 +8,7 @@
         public int CustomerId { get; set; }
         public string Name { get; set; } = string.Empty;
         public string? Description { get; set; }
-        public string Status { get; set; } = string.Empty;
+        public ProjectStatus Status { get; set; }
         public string? ImageUrl { get; set; }
         public DateTime CreatedAt { get; set; }
 

@@ -4,6 +4,7 @@
     {
         NO_MODEL,
         IN_PROCESS,
-        COMPLETE
+        COMPLETE,
+        DISCARDED
     }
 }

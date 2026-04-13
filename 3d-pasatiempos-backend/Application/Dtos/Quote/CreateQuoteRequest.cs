@@ -3,6 +3,7 @@
     public class CreateQuoteRequest
     {
         public int CustomerId { get; set; }
+        public int? ProjectId { get; set; }
         public string PrinterName { get; set; } = null!;
         public string Material { get; set; } = null!;
         public decimal ProfitPercentage { get; set; }

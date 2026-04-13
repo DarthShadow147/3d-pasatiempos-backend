@@ -92,6 +92,7 @@ namespace _3d_pasatiempos_backend.Infrastructure.Persistence.DataContext
                 entity.Property(e => e.Status)
                       .IsRequired()
                       .HasMaxLength(50)
+                      .HasConversion<string>()
                       .HasColumnName("status");
 
                 entity.Property(e => e.ImageUrl)
@@ -99,7 +100,8 @@ namespace _3d_pasatiempos_backend.Infrastructure.Persistence.DataContext
 
                 entity.Property(e => e.CreatedAt)
                       .HasColumnName("created_at")
-                      .HasDefaultValueSql("CURRENT_TIMESTAMP");
+                      .HasDefaultValueSql("CURRENT_TIMESTAMP")
+                      .HasConversion(v => v.ToUniversalTime(), v => DateTime.SpecifyKind(v, DateTimeKind.Utc));
             });
             #endregion
 
@@ -203,7 +205,8 @@ namespace _3d_pasatiempos_backend.Infrastructure.Persistence.DataContext
 
                 entity.Property(e => e.CreatedAt)
                       .HasColumnName("created_at")
-                      .HasDefaultValueSql("CURRENT_TIMESTAMP");
+                      .HasDefaultValueSql("CURRENT_TIMESTAMP")
+                      .HasConversion(v => v.ToUniversalTime(), v => DateTime.SpecifyKind(v, DateTimeKind.Utc));
 
                 entity.Property(e => e.Status)
                       .IsRequired()

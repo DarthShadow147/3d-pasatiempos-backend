@@ -1,6 +1,5 @@
 ﻿using _3d_pasatiempos_backend.Application.Dtos.Customer;
 using _3d_pasatiempos_backend.Application.Dtos.Project;
-using _3d_pasatiempos_backend.Domain.Enums;
 
 namespace _3d_pasatiempos_backend.Application.Dtos.Quote
 {
@@ -8,7 +7,7 @@ namespace _3d_pasatiempos_backend.Application.Dtos.Quote
     {
         public int QuoteId { get; set; }
         public CustomerResponse Customer { get; set; }
-        public ProjectResponse ProjectDetail { get; set; } = null!;
+        public ProjectListResponse ProjectDetail { get; set; } = null!;
         public List<QuoteItemResponse> Items { get; set; }
         public DateTime QuoteDate { get; set; }
         public string QuoteStatus { get; set; }

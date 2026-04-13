@@ -35,6 +35,7 @@ namespace _3d_pasatiempos_backend.Application.Services
             var lQuote = new Quote
             {
                 CustomerId = pRequest.CustomerId,
+                ProjectId = pRequest.ProjectId,
                 CreatedAt = DateTime.UtcNow,
                 Status = QuoteStatus.PENDING,
                 Items = []
@@ -117,13 +118,11 @@ namespace _3d_pasatiempos_backend.Application.Services
                     Email = lQuote.Customer.Email
                 },
 
-                ProjectDetail = lQuote.Project == null ? null : new ProjectResponse
+                ProjectDetail = lQuote.Project == null ? null : new ProjectListResponse
                 {
                     ProjectId = lQuote.Project.Id,
                     ProjectName = lQuote.Project.Name,
-                    Description = lQuote.Project.Description,
-                    Status = lQuote.Project.Status,
-                    Image = lQuote.Project.ImageUrl
+                    Status = lQuote.Project.Status.ToString(),
                 },
 
                 Items = lQuote.Items.Select(i => new QuoteItemResponse

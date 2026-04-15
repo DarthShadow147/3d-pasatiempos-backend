@@ -41,6 +41,19 @@ namespace _3d_pasatiempos_backend.Infrastructure.Repositories
         }
 
         /// <summary>
+        /// Method that obtains the details of the entire production cycle by filtering by production ID
+        /// </summary>
+        /// <param name="pProductionId">Production ID</param>
+        /// <returns></returns>
+        public async Task<Production> GetProductionCycleAsync(int pProductionId)
+        {
+            return await _Context.Production
+                .Include(p => p.Order)
+                .ThenInclude(o => o.Quote)
+                .FirstOrDefaultAsync(p => p.Id == pProductionId);
+        }
+
+        /// <summary>
         /// Method that updates the production record in the database
         /// </summary>
         /// <param name="pProduction">Production model</param>

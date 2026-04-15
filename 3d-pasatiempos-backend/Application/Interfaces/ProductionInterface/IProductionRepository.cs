@@ -6,6 +6,7 @@ namespace _3d_pasatiempos_backend.Application.Interfaces.ProductionInterface
     {
         Task<bool> AddAsync(Production pProduction);
         Task<Production> GetProductuonByOrderIdAsync(int pOrderId);
+        Task<Production> GetProductionCycleAsync(int pProductionId);
         Task UpdateAsync(Production pProduction);
     }
 }

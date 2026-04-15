@@ -1,10 +1,12 @@
-﻿namespace _3d_pasatiempos_backend.Domain.Entities
+﻿using _3d_pasatiempos_backend.Domain.Enums;
+
+namespace _3d_pasatiempos_backend.Domain.Entities
 {
     public class Order
     {
         public int Id { get; set; }
         public int QuoteId { get; set; }
-        public string Status { get; set; } = string.Empty;
+        public OrderStatus Status { get; set; }
         public DateTime? StartDate { get; set; }
         public DateTime? EndDate { get; set; }
 

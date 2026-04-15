@@ -1,4 +1,6 @@
 using _3d_pasatiempos_backend.Application.Interfaces.CustomerInterfaces;
+using _3d_pasatiempos_backend.Application.Interfaces.OrderInterfaces;
+using _3d_pasatiempos_backend.Application.Interfaces.ProductionInterface;
 using _3d_pasatiempos_backend.Application.Interfaces.ProjectInterfaces;
 using _3d_pasatiempos_backend.Application.Interfaces.QuoteInterfaces;
 using _3d_pasatiempos_backend.Application.Services;
@@ -14,6 +16,9 @@ builder.Services.AddControllers();
 //DI
 builder.Services.AddScoped<ICustomerRepository, CustomerRepository>();
 builder.Services.AddScoped<ICustomerService, CustomerService>();
+builder.Services.AddScoped<IOrderRepository, OrderRepository>();
+builder.Services.AddScoped<IOrderService, OrderService>();
+builder.Services.AddScoped<IProductionRepository, ProductionRepository>();
 builder.Services.AddScoped<IProjectRepository, ProjectRepository>();
 builder.Services.AddScoped<IProjectService, ProjectService>();
 builder.Services.AddScoped<IQuoteRepository, QuoteRepository>();

@@ -19,7 +19,7 @@ namespace _3d_pasatiempos_backend.Infrastructure.Repositories
         /// <summary>
         /// Method used to save the quote and its details in the database
         /// </summary>
-        /// <param name="pQuote">Quote Model</param>
+        /// <param name="pQuote">Quote model</param>
         /// <returns></returns>
         public async Task<bool> AddAsync(Quote pQuote)
         {

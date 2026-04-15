@@ -315,6 +315,7 @@ namespace _3d_pasatiempos_backend.Infrastructure.Persistence.DataContext
                 entity.Property(e => e.Status)
                       .IsRequired()
                       .HasMaxLength(50)
+                      .HasConversion<string>()
                       .HasColumnName("status");
 
                 entity.Property(e => e.StartDate)
@@ -336,14 +337,6 @@ namespace _3d_pasatiempos_backend.Infrastructure.Persistence.DataContext
                       .WithOne(o => o.Production)
                       .HasForeignKey<Production>(p => p.OrderId);
 
-                entity.HasOne(p => p.Printer)
-                      .WithMany()
-                      .HasForeignKey(p => p.PrinterId);
-
-                entity.HasOne(p => p.Material)
-                      .WithMany()
-                      .HasForeignKey(p => p.MaterialId);
-
                 // Columns
                 entity.Property(e => e.Id)
                       .HasColumnName("id");
@@ -352,29 +345,20 @@ namespace _3d_pasatiempos_backend.Infrastructure.Persistence.DataContext
                       .HasColumnName("order_id")
                       .IsRequired();
 
-                entity.Property(e => e.PrinterId)
-                      .HasColumnName("printer_id")
-                      .IsRequired();
-
-                entity.Property(e => e.MaterialId)
-                      .HasColumnName("material_id")
-                      .IsRequired();
-
                 entity.Property(e => e.GramsUsed)
                       .HasColumnType("decimal(10,2)")
                       .HasColumnName("grams_used");
 
-                entity.Property(e => e.EstimatedHours)
-                      .HasColumnType("decimal(10,2)")
-                      .HasColumnName("estimated_hours");
+                entity.Property(e => e.StartTime)
+                      .HasColumnName("start_time");
 
-                entity.Property(e => e.ActualHours)
-                      .HasColumnType("decimal(10,2)")
-                      .HasColumnName("actual_hours");
+                entity.Property(e => e.EstimatedEndTime)
+                      .HasColumnName("estimated_end_time");
 
                 entity.Property(e => e.Status)
                       .IsRequired()
                       .HasMaxLength(50)
+                      .HasConversion<string>()
                       .HasColumnName("status");
             });
             #endregion

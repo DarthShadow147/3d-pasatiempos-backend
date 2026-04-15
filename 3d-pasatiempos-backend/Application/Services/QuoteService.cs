@@ -1,18 +1,24 @@
 ﻿using _3d_pasatiempos_backend.Application.Dtos.Customer;
 using _3d_pasatiempos_backend.Application.Dtos.Project;
 using _3d_pasatiempos_backend.Application.Dtos.Quote;
+using _3d_pasatiempos_backend.Application.Interfaces.OrderInterfaces;
 using _3d_pasatiempos_backend.Application.Interfaces.QuoteInterfaces;
 using _3d_pasatiempos_backend.Domain.Entities;
 using _3d_pasatiempos_backend.Domain.Enums;
+using _3d_pasatiempos_backend.Infrastructure.Persistence.DataContext;
 
 namespace _3d_pasatiempos_backend.Application.Services
 {
     public class QuoteService : IQuoteService
     {
+        private readonly AppDbContext _Context;
+        private readonly IOrderRepository _OrderRepository;
         private readonly IQuoteRepository _QuoteRepository;
 
-        public QuoteService(IQuoteRepository QuoteRepository)
+        public QuoteService(AppDbContext Context, IOrderRepository OrderRepository, IQuoteRepository QuoteRepository)
         {
+            _Context = Context;
+            _OrderRepository = OrderRepository;
             _QuoteRepository = QuoteRepository;
         }
 
@@ -146,13 +152,30 @@ namespace _3d_pasatiempos_backend.Application.Services
         /// <returns></returns>
         public async Task ApproveAsync(int pQuoteId)
         {
-            var lQuote = await _QuoteRepository.GetQuoteByIdAsync(pQuoteId) ?? throw new Exception("Quote not found");
+            using var lTransaction = await _Context.Database.BeginTransactionAsync();
 
+            var lQuote = await _QuoteRepository.GetQuoteByIdAsync(pQuoteId) ?? throw new Exception("Quote not found");
             if (lQuote.Status != QuoteStatus.PENDING)
                 throw new Exception("Only pending quotes can be approved");
 
+            var lExistingOrder = await _OrderRepository.GetOrderByQuoteIdAsync(lQuote.Id);
+            if (lExistingOrder != null)
+                throw new Exception("Order already exists for this quote");
+
             lQuote.Status = QuoteStatus.APPROVED;
+
+            var lOrder = new Order
+            {
+                QuoteId = lQuote.Id,
+                Status = OrderStatus.PENDING,
+                StartDate = null,
+                EndDate = null
+            };
+
+            await _OrderRepository.AddAsync(lOrder);
             await _QuoteRepository.UpdateAsync(lQuote);
+
+            await lTransaction.CommitAsync();
         }
 
         /// <summary>

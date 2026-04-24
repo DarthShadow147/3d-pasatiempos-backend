@@ -1,16 +1,14 @@
-﻿using _3d_pasatiempos_backend.Application.Dtos.Quote;
+﻿using _3d_pasatiempos_backend.Application.Dtos.CommonDto;
 using _3d_pasatiempos_backend.Domain.Entities;
-using _3d_pasatiempos_backend.Domain.Enums;
 
 namespace _3d_pasatiempos_backend.Application.Interfaces.QuoteInterfaces
 {
     public interface IQuoteRepository
     {
-        Task<bool> AddAsync(Quote pQuote);
-        Task<List<QuoteListResponse>> GetAllAsync(List<QuoteStatus> pStatuses = null);
+        Task AddAsync(Quote pQuote);
         Task<Quote> GetQuoteByIdAsync(int pQuoteId);
-        Task UpdateAsync(Quote pQuote);
-        Task<Material> GetMaterialDetail(string pMaterialName);
-        Task<Printer> GetPrinterDetail(string pPrinterName);
+        Task<(List<Quote> Data, int TotalCount)> GetPagedQuoteAsync(QueryParams pQuery);
+        Task<Material> GetMaterialDetail(int pMaterialId);
+        Task<Printer> GetPrinterDetail(int pPrinterId);
     }
 }

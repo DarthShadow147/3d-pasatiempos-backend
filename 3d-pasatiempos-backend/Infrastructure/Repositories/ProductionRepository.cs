@@ -1,4 +1,5 @@
-﻿using _3d_pasatiempos_backend.Application.Interfaces.ProductionInterface;
+﻿using _3d_pasatiempos_backend.Application.Dtos.CommonDto;
+using _3d_pasatiempos_backend.Application.Interfaces.ProductionInterface;
 using _3d_pasatiempos_backend.Domain.Entities;
 using _3d_pasatiempos_backend.Infrastructure.Persistence.DataContext;
 using Microsoft.EntityFrameworkCore;
@@ -15,53 +16,61 @@ namespace _3d_pasatiempos_backend.Infrastructure.Repositories
         }
 
         /// <summary>
-        /// Method used to add a production record to the database
+        /// 
         /// </summary>
-        /// <param name="pProduction">Production model</param>
+        /// <param name="pProduction"></param>
         /// <returns></returns>
-        public async Task<bool> AddAsync(Production pProduction)
+        public async Task AddAsync(Production pProduction)
         {
-            _Context.Production.Add(pProduction);
-            var lTxResult = await _Context.SaveChangesAsync();
-
-            if (lTxResult > 0)
-                return true;
-            return false;
+            await _Context.AddAsync(pProduction);
         }
 
         /// <summary>
-        /// Method used to obtain production details filtered by order ID
+        /// 
         /// </summary>
-        /// <param name="pOrderId">Order ID</param>
+        /// <param name="pQuery"></param>
         /// <returns></returns>
-        public async Task<Production> GetProductuonByOrderIdAsync(int pOrderId)
+        public async Task<(List<Production> Data, int TotalCount)> GetPagedProductionAsync(QueryParams pQuery)
+        {
+            var lDbQuery = _Context.Production.AsQueryable();
+
+            if (!string.IsNullOrWhiteSpace(pQuery.Status))
+                lDbQuery = lDbQuery.Where(x => x.Status.Contains(pQuery.Status));
+
+            var lTotalCount = await lDbQuery.CountAsync();
+
+            var lData = await lDbQuery
+                .Include(x => x.Order)
+                .Skip((pQuery.Page - 1) * pQuery.PageSize)
+                .Take(pQuery.PageSize)
+                .ToListAsync();
+
+            return (lData, lTotalCount);
+        }
+
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="pOrderId"></param>
+        /// <returns></returns>
+        public async Task<Production> GetProductionByOrderIdAsync(int pOrderId)
         {
             return await _Context.Production
-                .FirstOrDefaultAsync(p => p.OrderId == pOrderId);
+                .FirstOrDefaultAsync(x => x.OrderId == pOrderId);
         }
 
         /// <summary>
-        /// Method that obtains the details of the entire production cycle by filtering by production ID
+        /// 
         /// </summary>
-        /// <param name="pProductionId">Production ID</param>
+        /// <param name="pProductionId"></param>
         /// <returns></returns>
-        public async Task<Production> GetProductionCycleAsync(int pProductionId)
+        public async Task<Production> GetProductionDetailByIdAsync(int pProductionId)
         {
             return await _Context.Production
-                .Include(p => p.Order)
-                .ThenInclude(o => o.Quote)
-                .FirstOrDefaultAsync(p => p.Id == pProductionId);
-        }
-
-        /// <summary>
-        /// Method that updates the production record in the database
-        /// </summary>
-        /// <param name="pProduction">Production model</param>
-        /// <returns></returns>
-        public async Task UpdateAsync(Production pProduction)
-        {
-            _Context.Production.Update(pProduction);
-            await _Context.SaveChangesAsync();
+                .Include(x => x.Order)
+                .ThenInclude(x => x.Quote)
+                .ThenInclude(x => x.Customer)
+                .FirstOrDefaultAsync(x => x.Id == pProductionId);
         }
     }
 }

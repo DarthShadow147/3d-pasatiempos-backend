@@ -1,12 +1,12 @@
-﻿using _3d_pasatiempos_backend.Application.Dtos.Project;
+﻿using _3d_pasatiempos_backend.Application.Dtos.CommonDto;
+using _3d_pasatiempos_backend.Application.Dtos.ProjectDto;
 
 namespace _3d_pasatiempos_backend.Application.Interfaces.ProjectInterfaces
 {
     public interface IProjectService
     {
-        Task<bool> CreateProjectAsync(CreateProjectRequest pRequest);
-        Task<List<ProjectListResponse>> GetAllAsync(List<string> pStatuses = null);
-        Task<ProjectDetailResponse> GetDetailByIdAsync(int pProjectId);
-        Task UpdateStatusAsync(int pProjectId, string pStatus);
+        Task<int> CreateProjectAsync(CreateProjectDto pRequest);
+        Task<ProjectDetailDto> GetProjectDetailAsync(int pProjectId);
+        Task<PagedResult<ProjectListDto>> GetPagedProjectAsync(QueryParams pQuery);
     }
 }

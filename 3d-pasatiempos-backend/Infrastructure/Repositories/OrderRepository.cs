@@ -1,4 +1,5 @@
-﻿using _3d_pasatiempos_backend.Application.Interfaces.OrderInterfaces;
+﻿using _3d_pasatiempos_backend.Application.Dtos.CommonDto;
+using _3d_pasatiempos_backend.Application.Interfaces.OrderInterfaces;
 using _3d_pasatiempos_backend.Domain.Entities;
 using _3d_pasatiempos_backend.Infrastructure.Persistence.DataContext;
 using Microsoft.EntityFrameworkCore;
@@ -9,59 +10,66 @@ namespace _3d_pasatiempos_backend.Infrastructure.Repositories
     {
         private readonly AppDbContext _Context;
 
-        public OrderRepository(AppDbContext pContext)
+        public OrderRepository(AppDbContext Context)
         {
-            _Context = pContext;
+            _Context = Context;
         }
 
         /// <summary>
-        /// Method used to save the order in the database
+        /// 
         /// </summary>
-        /// <param name="pOrder">Order model</param>
+        /// <param name="pOrder"></param>
         /// <returns></returns>
-        public async Task<bool> AddAsync(Order pOrder)
+        public async Task AddAsync(Order pOrder)
         {
-            _Context.Order.Add(pOrder);
-            var lTxResult = await _Context.SaveChangesAsync();
-
-            if (lTxResult > 0)
-                return true;
-            return false;
+            await _Context.Order.AddAsync(pOrder);
         }
 
         /// <summary>
-        /// Method used to obtain the order by the quote ID
+        /// 
         /// </summary>
-        /// <param name="pQuoteId">Quote ID</param>
+        /// <param name="pOrderId"></param>
+        /// <returns></returns>
+        public async Task<Order> GetOrderByIdAsync(int pOrderId)
+        {
+            return await _Context.Order
+                .Include(x => x.Quote)
+                .ThenInclude(x => x.QuoteItem)
+                .FirstOrDefaultAsync(x => x.Id == pOrderId);
+        }
+
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="pQuoteId"></param>
         /// <returns></returns>
         public async Task<Order> GetOrderByQuoteIdAsync(int pQuoteId)
         {
             return await _Context.Order
-                .FirstOrDefaultAsync(o => o.QuoteId == pQuoteId);
+                .FirstOrDefaultAsync(x => x.QuoteId == pQuoteId);
         }
 
         /// <summary>
-        /// Method used to obtain the order and quote details by filtering by Order ID
+        /// 
         /// </summary>
-        /// <param name="pOrderId">Order ID</param>
+        /// <param name="pQuery"></param>
         /// <returns></returns>
-        public async Task<Order> GetOrderByQuoteDetail(int pOrderId)
+        public async Task<(List<Order> Data, int TotalCount)> GetPagedOrderAsync(QueryParams pQuery)
         {
-            return await _Context.Order
-                .Include(o => o.Quote)
-                .ThenInclude(q => q.Items)
-                .FirstOrDefaultAsync(o => o.Id == pOrderId);
-        }
+            var lDbQuery = _Context.Order.AsQueryable();
 
-        /// <summary>
-        /// Method used to update the order
-        /// </summary>
-        /// <param name="pOrder">Order model</param>
-        /// <returns></returns>
-        public async Task UpdateAsync(Order pOrder)
-        {
-            _Context.Order.Update(pOrder);
-            await _Context.SaveChangesAsync();
+            if (!string.IsNullOrWhiteSpace(pQuery.Status))
+                lDbQuery = lDbQuery.Where(x => x.Status.Contains(pQuery.Status));
+
+            var lTotalCount = await lDbQuery.CountAsync();
+
+            var lData = await lDbQuery
+                .Include(x => x.Quote)
+                .Skip((pQuery.Page - 1) * pQuery.PageSize)
+                .Take(pQuery.PageSize)
+                .ToListAsync();
+
+            return (lData, lTotalCount);
         }
     }
 }

@@ -1,5 +1,8 @@
-﻿using _3d_pasatiempos_backend.Application.Dtos.Customer;
-using _3d_pasatiempos_backend.Application.Dtos.Project;
+﻿using _3d_pasatiempos_backend.Application.Dtos.CommonDto;
+using _3d_pasatiempos_backend.Application.Dtos.CustomerDto;
+using _3d_pasatiempos_backend.Application.Dtos.ProjectDto;
+using _3d_pasatiempos_backend.Application.Exceptions.Common;
+using _3d_pasatiempos_backend.Application.Interfaces.Common;
 using _3d_pasatiempos_backend.Application.Interfaces.ProjectInterfaces;
 using _3d_pasatiempos_backend.Domain.Entities;
 using _3d_pasatiempos_backend.Domain.Enums;
@@ -9,108 +12,91 @@ namespace _3d_pasatiempos_backend.Application.Services
     public class ProjectService : IProjectService
     {
         private readonly IProjectRepository _ProjectRepository;
+        private readonly IUnitOfWork _UnitOfWork;
 
-        public ProjectService(IProjectRepository ProjectRepository)
+        public ProjectService(IProjectRepository ProjectRepository, IUnitOfWork UnitOfWork)
         {
             _ProjectRepository = ProjectRepository;
+            _UnitOfWork = UnitOfWork;
         }
 
         /// <summary>
-        /// A method that creates print projects, which can be linked to a future quote
+        /// 
         /// </summary>
-        /// <param name="pRequest">Request for a new project</param>
+        /// <param name="pRequest"></param>
         /// <returns></returns>
-        public async Task<bool> CreateProjectAsync(CreateProjectRequest pRequest)
+        public async Task<int> CreateProjectAsync(CreateProjectDto pRequest)
         {
-            if (pRequest.ProjectName == null)
-                throw new Exception("Project must have at name");
-
             var lProject = new Project
             {
                 CustomerId = pRequest.CustomerId,
                 Name = pRequest.ProjectName,
                 Description = pRequest.Description,
-                Status = ProjectStatus.NO_MODEL,
+                Status = ProjectStatus.NO_MODEL.ToString(),
                 ImageUrl = pRequest.Image,
                 CreatedAt = DateTime.UtcNow
             };
 
-            var lTxResult = await _ProjectRepository.AddAsync(lProject);
+            await _ProjectRepository.AddAsync(lProject);
+            await _UnitOfWork.SaveChangesAsync();
 
-            if (lTxResult)
-                return true;
-            else
-                return false;
+            return lProject.Id;
         }
 
         /// <summary>
-        /// Method that obtains the list of projects, which can be filtered by their statuses
+        /// 
         /// </summary>
-        /// <param name="pStatuses">Project status</param>
+        /// <param name="pQuery"></param>
         /// <returns></returns>
-        public async Task<List<ProjectListResponse>> GetAllAsync(List<string> pStatuses = null)
+        public async Task<PagedResult<ProjectListDto>> GetPagedProjectAsync(QueryParams pQuery)
         {
-            if (pStatuses == null || pStatuses.Count == 0)
-                return await _ProjectRepository.GetAllAsync(null);
+            var (lData, lTotal) = await _ProjectRepository.GetPagedProjectAsync(pQuery);
 
-            var lStatusEnum = new List<ProjectStatus>();
-
-            foreach (var lStatus in pStatuses)
+            var lQueryResult = lData.Select(x => new ProjectListDto
             {
-                if (!Enum.TryParse<ProjectStatus>(lStatus, true, out var lParsed))
-                    lStatusEnum.Add(lParsed);
-            }
+                ProjectId = x.Id,
+                CustomerName = x.Customer.Name,
+                ProjectName = x.Name,
+                Status = x.Status
+            });
 
-            if (lStatusEnum.Count == 0)
-                throw new Exception("Invalid status values");
-
-            return await _ProjectRepository.GetAllAsync(lStatusEnum);
-        }
-
-        /// <summary>
-        /// Method that obtains the details of a project
-        /// </summary>
-        /// <param name="pProjectId">Project ID</param>
-        /// <returns></returns>
-        public async Task<ProjectDetailResponse> GetDetailByIdAsync(int pProjectId)
-        {
-            var lProject = await _ProjectRepository.GetProjectByIdAsync(pProjectId) ?? throw new Exception("Project not found");
-
-            return new ProjectDetailResponse
+            return new PagedResult<ProjectListDto>
             {
-                ProjectId = lProject.Id,
-                ProjectName = lProject.Name,
-                Description = lProject.Description,
-                Status = lProject.Status.ToString(),
-                Image = lProject.ImageUrl,
-                CreatedAt = lProject.CreatedAt,
-
-                Customer = new CustomerResponse
-                {
-                    Id = lProject.Customer.Id,
-                    Name = lProject.Customer.Name,
-                    Phone = lProject.Customer.Phone,
-                    Email = lProject.Customer.Email
-                },
+                Items = lQueryResult,
+                TotalCount = lTotal,
+                Page = pQuery.Page,
+                PageSize = pQuery.PageSize
             };
         }
 
         /// <summary>
-        /// Method that updates the states of a project
+        /// 
         /// </summary>
-        /// <param name="pProjectId">Project ID</param>
-        /// <param name="pStatus">Project status</param>
+        /// <param name="pProjectId"></param>
         /// <returns></returns>
-        public async Task UpdateStatusAsync(int pProjectId, string pStatus)
+        /// <exception cref="NotFoundException"></exception>
+        public async Task<ProjectDetailDto> GetProjectDetailAsync(int pProjectId)
         {
-            var lProject = await _ProjectRepository.GetProjectByIdAsync(pProjectId) ?? throw new Exception("Project not found");
+            var lProjectRecord = await _ProjectRepository.GetProjectByIdAsync(pProjectId)
+                ?? throw new NotFoundException("Project not found");
 
-            if (!Enum.TryParse<ProjectStatus>(pStatus, true, out var lParsed))
-                throw new Exception("Invalid status");
+            return new ProjectDetailDto
+            {
+                ProjectId = lProjectRecord.Id,
+                ProjectName = lProjectRecord.Name,
+                Description = lProjectRecord.Description,
+                Status = lProjectRecord.Status,
+                Image = lProjectRecord.ImageUrl,
+                CreatedAt = lProjectRecord.CreatedAt,
 
-            lProject.Status = lParsed;
-
-            await _ProjectRepository.UpdateAsync(lProject);
+                Customer = new DetailCustomerDto
+                {
+                    Id = lProjectRecord.Customer.Id,
+                    Name = lProjectRecord.Customer.Name,
+                    Phone = lProjectRecord.Customer.Phone,
+                    Email = lProjectRecord.Customer.Email
+                }
+            };
         }
     }
 }

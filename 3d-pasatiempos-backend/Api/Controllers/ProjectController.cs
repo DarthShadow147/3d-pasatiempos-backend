@@ -1,5 +1,8 @@
-﻿using _3d_pasatiempos_backend.Application.Dtos.Project;
+﻿using _3d_pasatiempos_backend.Application.Dtos.CommonDto;
+using _3d_pasatiempos_backend.Application.Dtos.CustomerDto;
+using _3d_pasatiempos_backend.Application.Dtos.ProjectDto;
 using _3d_pasatiempos_backend.Application.Interfaces.ProjectInterfaces;
+using FluentValidation;
 using Microsoft.AspNetCore.Mvc;
 
 namespace _3d_pasatiempos_backend.Api.Controllers
@@ -8,71 +11,37 @@ namespace _3d_pasatiempos_backend.Api.Controllers
     [ApiController]
     public class ProjectController : ControllerBase
     {
-        private readonly IProjectService _Service;
+        private readonly IProjectService _ProjectService;
 
-        public ProjectController(IProjectService Service)
+        public ProjectController(IProjectService ProjectService)
         {
-            _Service = Service;
+            _ProjectService = ProjectService;
         }
 
-        [HttpGet("GetProjectResume")]
-        public async Task<IActionResult> GetProjectResume([FromQuery] List<string> pStatus = null)
+        [HttpGet]
+        public async Task<IActionResult> GetProjectRecords([FromQuery] QueryParams pQuery)
         {
-            try
-            {
-                var lResult = await _Service.GetAllAsync(pStatus);
-                return Ok(lResult);
-            }
-            catch (Exception lEx)
-            {
-                return BadRequest(lEx.Message);
-            }
+            var lProjectData = await _ProjectService.GetPagedProjectAsync(pQuery);
+            return Ok(lProjectData);
         }
 
         [HttpGet("{pProjectId}")]
         public async Task<IActionResult> GetProjectDetail(int pProjectId)
         {
-            try
-            {
-                var lResult = await _Service.GetDetailByIdAsync(pProjectId);
-                return Ok(lResult);
-            }
-            catch (Exception lEx)
-            {
-                return NotFound(lEx.Message);
-            }
+            var lProjectData = await _ProjectService.GetProjectDetailAsync(pProjectId);
+            return Ok(lProjectData);
         }
 
         [HttpPost("CreateProject")]
-        public async Task<IActionResult> CreateProject([FromBody] CreateProjectRequest pRequest)
+        public async Task<IActionResult> CreateProject([FromBody] CreateProjectDto pRequest,
+            [FromServices] IValidator<CreateProjectDto> pValidator)
         {
-            try
-            {
-                var lResult = await _Service.CreateProjectAsync(pRequest);
-                if (lResult)
-                    return Ok(lResult);
-                else
-                    return BadRequest("Error to generate project");
-            }
-            catch (Exception lEx)
-            {
-                return BadRequest(lEx.Message);
-            }
-        }
+            var lValidationTx = await pValidator.ValidateAsync(pRequest);
+            if (!lValidationTx.IsValid)
+                return BadRequest(lValidationTx.Errors);
 
-        [HttpPut("{pProjectId}/change")]
-        public async Task<IActionResult> UpdateProject(int pProjectId, [FromQuery] string pStatus)
-        {
-            try
-            {
-                await _Service.UpdateStatusAsync(pProjectId, pStatus);
-                return NoContent();
-            }
-            catch (Exception lEx)
-            {
-                return BadRequest(lEx.Message);
-            }
+            var lCreateTx = await _ProjectService.CreateProjectAsync(pRequest);
+            return Ok(lCreateTx);
         }
-
     }
 }

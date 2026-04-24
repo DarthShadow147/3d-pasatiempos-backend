@@ -1,4 +1,5 @@
-﻿using _3d_pasatiempos_backend.Application.Dtos.Production;
+﻿using _3d_pasatiempos_backend.Application.Dtos.CommonDto;
+using _3d_pasatiempos_backend.Application.Dtos.ProductionDto;
 using _3d_pasatiempos_backend.Application.Interfaces.ProductionInterface;
 using Microsoft.AspNetCore.Mvc;
 
@@ -8,25 +9,32 @@ namespace _3d_pasatiempos_backend.Api.Controllers
     [ApiController]
     public class ProductionController : ControllerBase
     {
-        private readonly IProductionService _Service;
+        private readonly IProductionService _ProductionService;
 
-        public ProductionController(IProductionService Service)
+        public ProductionController(IProductionService ProductionService)
         {
-            _Service = Service;
+            _ProductionService = ProductionService;
+        }
+
+        [HttpGet]
+        public async Task<IActionResult> GetProductionRecords([FromQuery] QueryParams pQuery)
+        {
+            var lProductionData = await _ProductionService.GetPagedProductionAsync(pQuery);
+            return Ok(lProductionData);
+        }
+
+        [HttpGet("{pProductionId}")]
+        public async Task<IActionResult> GetProductionDetail(int pProductionId)
+        {
+            var lProductionData = await _ProductionService.GetProductionDetailAsync(pProductionId);
+            return Ok(lProductionData);
         }
 
         [HttpPut("{pProductionId}/complete")]
-        public async Task<IActionResult> CompleteProduction(int pProductionId, [FromBody] CompleteProductionRequest pRequest)
+        public async Task<IActionResult> CompleteProduction(int pProductionId, [FromBody] CompleteProductionDto pRequest)
         {
-            try
-            {
-                await _Service.CompleteProductionAsync(pProductionId, pRequest);
-                return NoContent();
-            }
-            catch (Exception lEx)
-            {
-                return BadRequest(lEx.Message);
-            }
+            await _ProductionService.CompleteProductionAsync(pProductionId, pRequest);
+            return NoContent();
         }
     }
 }

@@ -1,11 +1,11 @@
-﻿namespace _3d_pasatiempos_backend.Application.Dtos.Quote
+﻿namespace _3d_pasatiempos_backend.Application.Dtos.QuoteDto
 {
-    public class CreateQuoteRequest
+    public class CreateQuoteDto
     {
         public int CustomerId { get; set; }
         public int? ProjectId { get; set; }
-        public string PrinterName { get; set; } = null!;
-        public string Material { get; set; } = null!;
+        public int Printer { get; set; }
+        public int Material { get; set; }
         public decimal ProfitPercentage { get; set; }
         public List<CreateQuoteItemRequest> Items { get; set; } = [];
     }

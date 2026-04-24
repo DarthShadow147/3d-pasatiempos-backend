@@ -1,7 +1,6 @@
-﻿using _3d_pasatiempos_backend.Application.Dtos.Project;
+﻿using _3d_pasatiempos_backend.Application.Dtos.CommonDto;
 using _3d_pasatiempos_backend.Application.Interfaces.ProjectInterfaces;
 using _3d_pasatiempos_backend.Domain.Entities;
-using _3d_pasatiempos_backend.Domain.Enums;
 using _3d_pasatiempos_backend.Infrastructure.Persistence.DataContext;
 using Microsoft.EntityFrameworkCore;
 
@@ -17,64 +16,51 @@ namespace _3d_pasatiempos_backend.Infrastructure.Repositories
         }
 
         /// <summary>
-        /// Method that saves the project in a database
+        /// 
         /// </summary>
-        /// <param name="pProject">Project model</param>
+        /// <param name="pProject"></param>
         /// <returns></returns>
-        public async Task<bool> AddAsync(Project pProject)
+        public async Task AddAsync(Project pProject)
         {
-            _Context.Project.Add(pProject);
-            var lTxResult = await _Context.SaveChangesAsync();
-
-            if (lTxResult > 0)
-                return true;
-            return false;
+            await _Context.AddAsync(pProject);
         }
 
         /// <summary>
-        /// Method that obtains the list of projects from the database according to their filtered or unfiltered states
+        /// 
         /// </summary>
-        /// <param name="pStatuses">Project statuses</param>
-        /// <returns></returns>
-        public async Task<List<ProjectListResponse>> GetAllAsync(List<ProjectStatus> pStatuses = null)
-        {
-            var lQuery = _Context.Project.AsQueryable();
-
-            if (pStatuses != null && pStatuses.Count != 0)
-                lQuery = lQuery.Where(p => pStatuses.Contains(p.Status));
-
-            return await _Context.Project
-                .Select(p => new ProjectListResponse
-                {
-                    ProjectId = p.Id,
-                    CustomerName = p.Customer.Name,
-                    ProjectName = p.Name,
-                    Status = p.Status.ToString()
-                })
-                .ToListAsync();
-        }
-
-        /// <summary>
-        /// Method that obtains the details of a project based on its ID
-        /// </summary>
-        /// <param name="pProjectId">Project ID</param>
+        /// <param name="pProjectId"></param>
         /// <returns></returns>
         public async Task<Project> GetProjectByIdAsync(int pProjectId)
         {
             return await _Context.Project
-                .Include(p => p.Customer)
-                .FirstOrDefaultAsync(p => p.Id == pProjectId);
+                .Include(x => x.Customer)
+                .FirstOrDefaultAsync(x => x.Id == pProjectId);
         }
 
         /// <summary>
-        /// Method that updates the status of a project in the database
+        /// 
         /// </summary>
-        /// <param name="pProject">Project model to update</param>
+        /// <param name="pQuery"></param>
         /// <returns></returns>
-        public async Task UpdateAsync(Project pProject)
+        public async Task<(List<Project> Data, int TotalCount)> GetPagedProjectAsync(QueryParams pQuery)
         {
-            _Context.Project.Update(pProject);
-            await _Context.SaveChangesAsync();
+            var lDbQuery = _Context.Project.AsQueryable();
+
+            if (!string.IsNullOrWhiteSpace(pQuery.Name))
+                lDbQuery = lDbQuery.Where(x => x.Name.Contains(pQuery.Name));
+
+            if (!string.IsNullOrWhiteSpace(pQuery.Status))
+                lDbQuery = lDbQuery.Where(x => x.Status.Contains(pQuery.Status));
+
+            var lTotalCount = await lDbQuery.CountAsync();
+
+            var lData = await lDbQuery
+                .Include(x => x.Customer)
+                .Skip((pQuery.Page - 1) * pQuery.PageSize)
+                .Take(pQuery.PageSize)
+                .ToListAsync();
+
+            return (lData, lTotalCount);
         }
     }
 }

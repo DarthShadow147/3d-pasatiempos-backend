@@ -1,5 +1,7 @@
-﻿using _3d_pasatiempos_backend.Application.Dtos.Customer;
+﻿using _3d_pasatiempos_backend.Application.Dtos.CommonDto;
+using _3d_pasatiempos_backend.Application.Dtos.CustomerDto;
 using _3d_pasatiempos_backend.Application.Interfaces.CustomerInterfaces;
+using FluentValidation;
 using Microsoft.AspNetCore.Mvc;
 
 namespace _3d_pasatiempos_backend.Api.Controllers
@@ -8,25 +10,30 @@ namespace _3d_pasatiempos_backend.Api.Controllers
     [ApiController]
     public class CustomerController : ControllerBase
     {
-        private readonly ICustomerService _Service;
+        private readonly ICustomerService _CustomerService;
 
-        public CustomerController(ICustomerService Service)
+        public CustomerController(ICustomerService CustomerService)
         {
-            _Service = Service;
+            _CustomerService = CustomerService;
         }
 
-        [HttpPost]
-        public async Task<IActionResult> Create([FromBody] CreateCustomerRequest Request)
+        [HttpPost("CreateCustomer")]
+        public async Task<IActionResult> CreateCustomer([FromBody] CreateCustomerDto pRequest, 
+            [FromServices] IValidator<CreateCustomerDto> pValidator)
         {
-            var lResult = await _Service.CreateAsync(Request);
-            return Ok(lResult);
+            var lValidationTx = await pValidator.ValidateAsync(pRequest);
+            if (!lValidationTx.IsValid)
+                return BadRequest(lValidationTx.Errors);
+
+            var lCreateTx = await _CustomerService.CreateAsync(pRequest);
+            return Ok(lCreateTx);
         }
 
         [HttpGet]
-        public async Task<IActionResult> GetAllCustomers()
+        public async Task<IActionResult> GetAllRecords([FromQuery] QueryParams pQuery)
         {
-            var lResult = await _Service.GetAllAsync();
-            return Ok(lResult);
+            var lCustomerData = await _CustomerService.GetPagedAsync(pQuery);
+            return Ok(lCustomerData);
         }
     }
 }

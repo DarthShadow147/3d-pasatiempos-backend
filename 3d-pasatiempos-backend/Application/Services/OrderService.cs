@@ -1,69 +1,132 @@
-﻿using _3d_pasatiempos_backend.Application.Interfaces.OrderInterfaces;
+﻿using _3d_pasatiempos_backend.Application.Dtos.CommonDto;
+using _3d_pasatiempos_backend.Application.Dtos.OrderDto;
+using _3d_pasatiempos_backend.Application.Exceptions.Common;
+using _3d_pasatiempos_backend.Application.Interfaces.Common;
+using _3d_pasatiempos_backend.Application.Interfaces.OrderInterfaces;
 using _3d_pasatiempos_backend.Application.Interfaces.ProductionInterface;
 using _3d_pasatiempos_backend.Domain.Entities;
 using _3d_pasatiempos_backend.Domain.Enums;
-using _3d_pasatiempos_backend.Infrastructure.Persistence.DataContext;
 
 namespace _3d_pasatiempos_backend.Application.Services
 {
     public class OrderService : IOrderService
     {
-        private readonly AppDbContext _Context;
         private readonly IOrderRepository _OrderRepository;
         private readonly IProductionRepository _ProductionRepository;
+        private readonly IUnitOfWork _UnitOfWork;
 
-        public OrderService(AppDbContext Context, IOrderRepository OrderRepository, IProductionRepository ProductionRepository)
+        public OrderService(IOrderRepository OrderRepository, IProductionRepository ProductionRepository, IUnitOfWork UnitOfWork)
         {
-            _Context = Context;
             _OrderRepository = OrderRepository;
             _ProductionRepository = ProductionRepository;
+            _UnitOfWork = UnitOfWork;
         }
 
         /// <summary>
-        /// Method that initiates production of an order.
-        /// This involves validations such as:
-        /// That the order is in "PENDING" status
-        /// That there is NO record of the order in production.
+        /// 
         /// </summary>
-        /// <param name="pOrderId">Order ID</param>
+        /// <param name="pOrderId"></param>
         /// <returns></returns>
         public async Task StartOrderAsync(int pOrderId)
         {
-            using var lTransaction = await _Context.Database.BeginTransactionAsync();
+            try
+            {
+                await _UnitOfWork.BeginTransactionAsync();
 
-            var lOrder = await _OrderRepository.GetOrderByQuoteDetail(pOrderId) ?? throw new Exception("Order not found");
+                var lOrderRecord = await _OrderRepository.GetOrderByIdAsync(pOrderId) 
+                    ?? throw new NotFoundException("Order not found");
 
-            if (lOrder.Status != OrderStatus.PENDING)
-                throw new Exception("Only pending orders can be started");
+                if (lOrderRecord.Status != OrderStatus.PENDING.ToString())
+                    throw new BadRequestException("Only pending orders can be started");
 
-            var lExistingProduction = await _ProductionRepository.GetProductuonByOrderIdAsync(pOrderId);
+                var lTotalEstimatedHours = lOrderRecord.Quote.QuoteItem
+                    .Sum(i => i.EstimatedHours);
 
-            if (lExistingProduction != null)
-                throw new Exception("Production already exists for this order");
+                var lNow = DateTime.UtcNow;
 
-            var lTotalEstimatedHours = lOrder.Quote.Items
-                .Sum(i => i.EstimatedHours);
+                lOrderRecord.Status = OrderStatus.IN_PROGRESS.ToString();
+                lOrderRecord.StartDate = lNow;
 
-            if (lTotalEstimatedHours <= 0)
-                throw new Exception("Invalid estimated hours");
+#pragma warning disable 
+                var lProduction = new Production
+                {
+                    OrderId = pOrderId,
+                    StartTime = lNow,
+                    EstimatedEndTime = lNow.AddMinutes((double)lTotalEstimatedHours),
+                    Status = ProductionStatus.IN_PROGRESS.ToString()
+                };
+#pragma warning restore
+
+                await _ProductionRepository.AddAsync(lProduction);
+                await _UnitOfWork.SaveChangesAsync();
+                await _UnitOfWork.CommitAsync();
+            }
+            catch
+            {
+                await _UnitOfWork.RollbackAsync();
+                throw;
+            }
+        }
+
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="pOrderId"></param>
+        /// <param name="pHours"></param>
+        /// <param name="pMinutes"></param>
+        /// <returns></returns>
+        /// <exception cref="NotFoundException"></exception>
+        /// <exception cref="BadRequestException"></exception>
+        public async Task<int> CreateStandAloneProduction(CreateProductionDto pRequest)
+        {
+            var lOrderRecord = await _OrderRepository.GetOrderByIdAsync(pRequest.OrderId) 
+                ?? throw new NotFoundException("Order not found");
+
+            if (lOrderRecord.Status != OrderStatus.PENDING.ToString() || lOrderRecord.Status != OrderStatus.IN_PROGRESS.ToString())
+                throw new BadRequestException("Only pending or in progress orders can be started");
 
             var lNow = DateTime.UtcNow;
-
-            lOrder.Status = OrderStatus.IN_PROGRESS;
-            lOrder.StartDate = lNow;
+            var lTotalProductionMinutes = (pRequest.Hours * 60) + pRequest.Minutes;
 
             var lProduction = new Production
             {
-                OrderId = pOrderId,
+                OrderId = pRequest.OrderId,
                 StartTime = lNow,
-                EstimatedEndTime = lNow.AddMinutes((double)lTotalEstimatedHours),
-                Status = ProductionStatus.IN_PROGRESS
+                EstimatedEndTime = lNow.AddMinutes(lTotalProductionMinutes),
+                Status = ProductionStatus.IN_PROGRESS.ToString()
             };
 
-            await _OrderRepository.UpdateAsync(lOrder);
             await _ProductionRepository.AddAsync(lProduction);
+            await _UnitOfWork.SaveChangesAsync();
 
-            await lTransaction.CommitAsync();
+            return lProduction.OrderId;
+        }
+
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="pQuery"></param>
+        /// <returns></returns>
+        public async Task<PagedResult<OrderDetailDto>> GetPagedOrderAsync(QueryParams pQuery)
+        {
+            var (lData, lTotal) = await _OrderRepository.GetPagedOrderAsync(pQuery);
+
+            var lQueryResult = lData.Select(x => new OrderDetailDto
+            {
+                OrderId = x.Id,
+                Status = x.Status,
+                StartDate = x.StartDate,
+                EndDate = x.EndDate,
+                Total = x.Quote.Total
+            });
+
+            return new PagedResult<OrderDetailDto>
+            {
+                Items = lQueryResult,
+                TotalCount = lTotal,
+                Page = pQuery.Page,
+                PageSize = pQuery.PageSize
+            };
         }
     }
 }

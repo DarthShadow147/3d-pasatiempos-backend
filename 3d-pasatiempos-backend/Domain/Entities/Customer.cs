@@ -1,15 +1,13 @@
-﻿namespace _3d_pasatiempos_backend.Domain.Entities
+﻿namespace _3d_pasatiempos_backend.Domain.Entities;
+
+public partial class Customer
 {
-    public class Customer
-    {
-        public int Id { get; set; }
-        public string Name { get; set; } = string.Empty;
-        public string? Email { get; set; }
-        public string? Phone { get; set; }
-        public DateTime CreatedAt { get; set; }
+    public int Id { get; set; }
+    public string Name { get; set; } = string.Empty;
+    public string Email { get; set; } = string.Empty;
+    public string Phone { get; set; } = string.Empty;
+    public DateTime? CreatedAt { get; set; }
 
-
-        public ICollection<Project> Projects { get; set; } = [];
-        public ICollection<Quote> Quotes { get; set; } = [];
-    }
+    public virtual ICollection<Project> Project { get; set; } = [];
+    public virtual ICollection<Quote> Quote { get; set; } = [];
 }

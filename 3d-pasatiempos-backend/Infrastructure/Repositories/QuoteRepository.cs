@@ -1,7 +1,6 @@
-﻿using _3d_pasatiempos_backend.Application.Dtos.Quote;
+﻿using _3d_pasatiempos_backend.Application.Dtos.CommonDto;
 using _3d_pasatiempos_backend.Application.Interfaces.QuoteInterfaces;
 using _3d_pasatiempos_backend.Domain.Entities;
-using _3d_pasatiempos_backend.Domain.Enums;
 using _3d_pasatiempos_backend.Infrastructure.Persistence.DataContext;
 using Microsoft.EntityFrameworkCore;
 
@@ -17,98 +16,74 @@ namespace _3d_pasatiempos_backend.Infrastructure.Repositories
         }
 
         /// <summary>
-        /// Method used to save the quote and its details in the database
+        /// 
         /// </summary>
-        /// <param name="pQuote">Quote model</param>
+        /// <param name="pQuote"></param>
         /// <returns></returns>
-        public async Task<bool> AddAsync(Quote pQuote)
+        public async Task AddAsync(Quote pQuote)
         {
-            _Context.Quote.Add(pQuote);
-            var lTxResult = await _Context.SaveChangesAsync();
-
-            if (lTxResult > 0)
-                return true;
-            return false;
+            await _Context.Quote.AddAsync(pQuote);
         }
 
         /// <summary>
-        /// Method that searches for the quote in the database and filters according to the parameters
+        /// 
         /// </summary>
-        /// <param name="pStatuses">Status of quotations</param>
+        /// <param name="pQuery"></param>
         /// <returns></returns>
-        public async Task<List<QuoteListResponse>> GetAllAsync(List<QuoteStatus> pStatuses = null)
+        public async Task<(List<Quote> Data, int TotalCount)> GetPagedQuoteAsync(QueryParams pQuery)
         {
-            var lQuery = _Context.Quote.AsQueryable();
+            var lDbQuery = _Context.Quote.AsQueryable();
 
-            if (pStatuses != null && pStatuses.Count != 0)
-                lQuery = lQuery.Where(q => pStatuses.Contains(q.Status));
+            if (!string.IsNullOrWhiteSpace(pQuery.Status))
+                lDbQuery = lDbQuery.Where(x => x.Status.Contains(pQuery.Status));
 
-            return await _Context.Quote
-                .Select(q => new QuoteListResponse
-                {
-                    Id = q.Id,
-                    CustomerName = q.Customer.Name,
-                    ProjectName = q.Project != null ? q.Project.Name : null,
-                    Status = q.Status.ToString(),
-                    Total = (decimal)q.Total,
-                    CreatedAt = q.CreatedAt
-                })
+            var lTotalCount = await lDbQuery.CountAsync();
+
+            var lData = await lDbQuery
+                .Include(x => x.Customer)
+                .Include(x => x.Project)
+                .Include(x => x.QuoteItem)
+                .Skip((pQuery.Page - 1) * pQuery.PageSize)
+                .Take(pQuery.PageSize)
                 .ToListAsync();
+
+            return (lData, lTotalCount);
         }
 
         /// <summary>
-        /// Method that obtains the details of the quotes from the database, attaching to the query the entities of Client, Project and Items
+        /// 
         /// </summary>
-        /// <param name="pQuoteId">Quote ID</param>
+        /// <param name="pQuoteId"></param>
         /// <returns></returns>
         public async Task<Quote> GetQuoteByIdAsync(int pQuoteId)
         {
             return await _Context.Quote
-                .Include(q => q.Customer)
-                .Include(q => q.Project)
-                .Include(q => q.Items)
-                .FirstOrDefaultAsync(q => q.Id == pQuoteId);
+                .Include(x => x.Customer)
+                .Include(x => x.Project)
+                .Include(x => x.QuoteItem)
+                .FirstOrDefaultAsync(x => x.Id == pQuoteId);
         }
 
         /// <summary>
-        /// Method used to update the quotes table
+        /// 
         /// </summary>
-        /// <param name="pQuote">Quote model</param>
+        /// <param name="pMaterialId"></param>
         /// <returns></returns>
-        public async Task UpdateAsync(Quote pQuote)
+        public async Task<Material> GetMaterialDetail(int pMaterialId)
         {
-            _Context.Quote.Update(pQuote);
-            await _Context.SaveChangesAsync();
-        }
-
-        /// <summary>
-        /// Method that obtains the details of the material used for manufacturing
-        /// </summary>
-        /// <param name="pMaterialName">Name of the material used</param>
-        /// <returns></returns>
-        public async Task<Material> GetMaterialDetail(string pMaterialName)
-        {
-            if (String.IsNullOrWhiteSpace(pMaterialName))
-                return null;
-
             return await _Context.Material
-                .AsNoTracking()
-                .FirstOrDefaultAsync(x => EF.Functions.Like(x.Name, pMaterialName));
+                .FirstOrDefaultAsync(x => x.Id == pMaterialId);
         }
 
         /// <summary>
-        /// Method used to obtain details of the printer used for manufacturing
+        /// 
         /// </summary>
-        /// <param name="pPrinterName">Printer name</param>
+        /// <param name="pPrinterId"></param>
         /// <returns></returns>
-        public async Task<Printer> GetPrinterDetail(string pPrinterName)
+        public async Task<Printer> GetPrinterDetail(int pPrinterId)
         {
-            if (String.IsNullOrWhiteSpace(pPrinterName))
-                return null;
-
             return await _Context.Printer
-                .AsNoTracking()
-                .FirstOrDefaultAsync(x => EF.Functions.Like(x.Name, pPrinterName));
+                .FirstOrDefaultAsync(x => x.Id == pPrinterId);
         }
     }
 }

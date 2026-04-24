@@ -1,50 +1,50 @@
-﻿using _3d_pasatiempos_backend.Application.Dtos.Customer;
-using _3d_pasatiempos_backend.Application.Dtos.Project;
-using _3d_pasatiempos_backend.Application.Dtos.Quote;
+﻿using _3d_pasatiempos_backend.Application.Dtos.CommonDto;
+using _3d_pasatiempos_backend.Application.Dtos.CustomerDto;
+using _3d_pasatiempos_backend.Application.Dtos.ProjectDto;
+using _3d_pasatiempos_backend.Application.Dtos.QuoteDto;
+using _3d_pasatiempos_backend.Application.Exceptions.Common;
+using _3d_pasatiempos_backend.Application.Interfaces.Common;
 using _3d_pasatiempos_backend.Application.Interfaces.OrderInterfaces;
 using _3d_pasatiempos_backend.Application.Interfaces.QuoteInterfaces;
 using _3d_pasatiempos_backend.Domain.Entities;
 using _3d_pasatiempos_backend.Domain.Enums;
-using _3d_pasatiempos_backend.Infrastructure.Persistence.DataContext;
 
 namespace _3d_pasatiempos_backend.Application.Services
 {
     public class QuoteService : IQuoteService
     {
-        private readonly AppDbContext _Context;
         private readonly IOrderRepository _OrderRepository;
         private readonly IQuoteRepository _QuoteRepository;
+        private readonly IUnitOfWork _UnitOfWork;
 
-        public QuoteService(AppDbContext Context, IOrderRepository OrderRepository, IQuoteRepository QuoteRepository)
+        public QuoteService(IOrderRepository OrderRepository, IQuoteRepository QuoteRepository, IUnitOfWork UnitOfWork)
         {
-            _Context = Context;
             _OrderRepository = OrderRepository;
             _QuoteRepository = QuoteRepository;
+            _UnitOfWork = UnitOfWork;
         }
 
         /// <summary>
-        /// Method used to create a new quote and calculate in detail the operating costs to execute it
+        /// 
         /// </summary>
-        /// <param name="pRequest">Request for a new quote</param>
+        /// <param name="pRequest"></param>
         /// <returns></returns>
-        public async Task<bool> CreateQuoteAsync(CreateQuoteRequest pRequest)
+        /// <exception cref="NotFoundException"></exception>
+        public async Task<int> CreateQuoteAsync(CreateQuoteDto pRequest)
         {
-            if (pRequest.Items == null || pRequest.Items.Count == 0)
-                throw new Exception("Quote must have at least one item");
-
             var lMaterial = await _QuoteRepository.GetMaterialDetail(pRequest.Material);
-            var lPrinter = await _QuoteRepository.GetPrinterDetail(pRequest.PrinterName);
+            var lPrinter = await _QuoteRepository.GetPrinterDetail(pRequest.Printer);
 
             if (lMaterial == null || lPrinter == null)
-                throw new Exception("Printer or Material are missing");
+                throw new NotFoundException("Printer or Material are missing");
 
             var lQuote = new Quote
             {
                 CustomerId = pRequest.CustomerId,
                 ProjectId = pRequest.ProjectId,
                 CreatedAt = DateTime.UtcNow,
-                Status = QuoteStatus.PENDING,
-                Items = []
+                Status = QuoteStatus.PENDING.ToString(),
+                QuoteItem = []
             };
 
             decimal lTotal = 0;
@@ -59,64 +59,68 @@ namespace _3d_pasatiempos_backend.Application.Services
                     PricePerGramUsed = GetEstimatedPricePerGram(lMaterial.PricePerGram, lItem.Grams),
                     CostPerKwhUsed = GetEstimatedEnergyCost(lPrinter.PowerConsumptionKwh, lPrinter.PowerConsumptionWh, lItem.Hours, lItem.Minutes),
                     MachineWearCostUsed = GetEstimatedWearMachine(lPrinter.CostPerMinute, lItem.Hours, lItem.Minutes),
-                    CostOverrunFailture = GetEstimatedOverrunFailture(lMaterial, lPrinter, lItem.Grams, lItem.Hours, lItem.Minutes),
+                    CostOverrunFailure = GetEstimatedOverrunFailture(lMaterial, lPrinter, lItem.Grams, lItem.Hours, lItem.Minutes),
                     ProfitPercentage = pRequest.ProfitPercentage
                 };
 
                 lTotal += (decimal)lQuoteItem.CalculatedPrice;
-                lQuote.Items.Add(lQuoteItem);
+                lQuote.QuoteItem.Add(lQuoteItem);
             }
 
             lQuote.Total = lTotal;
-            var lTxResult = await _QuoteRepository.AddAsync(lQuote);
 
-            if (lTxResult)
-                return true;
-            else
-                return false;
+            await _QuoteRepository.AddAsync(lQuote);
+            await _UnitOfWork.SaveChangesAsync();
+
+            return lQuote.Id;
         }
 
         /// <summary>
-        /// Method that obtains a summary of quotes by filtering by status
+        /// 
         /// </summary>
-        /// <param name="pStatuses">Status of quotations</param>
+        /// <param name="pQuery"></param>
         /// <returns></returns>
-        public async Task<List<QuoteListResponse>> GetAllAsync(List<string> pStatuses = null)
+        public async Task<PagedResult<QuoteListDto>> GetPagedQuoteAsync(QueryParams pQuery)
         {
-            if (pStatuses == null || pStatuses.Count == 0)
-                return await _QuoteRepository.GetAllAsync(null);
+            var (lData, lTotal) = await _QuoteRepository.GetPagedQuoteAsync(pQuery);
 
-            var lStatusEnum = new List<QuoteStatus>();
-
-            foreach (var lStatus in pStatuses)
+            var lQueryResult = lData.Select(x => new QuoteListDto
             {
-                if (!Enum.TryParse<QuoteStatus>(lStatus, true, out var lParsed))
-                    lStatusEnum.Add(lParsed);
-            }
+                Id = x.Id,
+                CustomerName = x.Customer.Name,
+                ProjectName = x.Project?.Name,
+                Status = x.Status,
+                Total = x.Total,
+                CreatedAt = x.CreatedAt
+            });
 
-            if (lStatusEnum.Count == 0)
-                throw new Exception("Invalid status values");
-
-            return await _QuoteRepository.GetAllAsync(lStatusEnum);
+            return new PagedResult<QuoteListDto>
+            {
+                Items = lQueryResult,
+                TotalCount = lTotal,
+                Page = pQuery.Page,
+                PageSize = pQuery.PageSize
+            };
         }
 
         /// <summary>
-        /// Method that obtains the complete details of the quotes, client, project (if applicable) and quote items
+        /// 
         /// </summary>
-        /// <param name="pQuoteId">Quote ID</param>
+        /// <param name="pQuoteId"></param>
         /// <returns></returns>
-        public async Task<QuoteDetailResponse> GetDetailByIdAsync(int pQuoteId)
+        /// <exception cref="NotFoundException"></exception>
+        public async Task<QuoteDetailDto> GetQuoteDetailAsync(int pQuoteId)
         {
-            var lQuote = await _QuoteRepository.GetQuoteByIdAsync(pQuoteId) ?? throw new Exception("Quote not found");
+            var lQuote = await _QuoteRepository.GetQuoteByIdAsync(pQuoteId) ?? throw new NotFoundException("Quote not found");
 
-            return new QuoteDetailResponse
+            return new QuoteDetailDto
             {
                 QuoteId = lQuote.Id,
                 QuoteDate = lQuote.CreatedAt,
                 QuoteStatus = lQuote.Status.ToString(),
                 QuoteTotal = lQuote.Total,
 
-                Customer = new CustomerResponse
+                Customer = new DetailCustomerDto
                 {
                     Id = lQuote.Customer.Id,
                     Name = lQuote.Customer.Name,
@@ -124,14 +128,14 @@ namespace _3d_pasatiempos_backend.Application.Services
                     Email = lQuote.Customer.Email
                 },
 
-                ProjectDetail = lQuote.Project == null ? null : new ProjectListResponse
+                ProjectDetail = lQuote.Project == null ? null : new ProjectListDto
                 {
                     ProjectId = lQuote.Project.Id,
                     ProjectName = lQuote.Project.Name,
-                    Status = lQuote.Project.Status.ToString(),
+                    Status = lQuote.Project.Status.ToString()
                 },
 
-                Items = lQuote.Items.Select(i => new QuoteItemResponse
+                Items = lQuote.QuoteItem.Select(i => new QuoteItemDetailDto
                 {
                     QuoteItemId = i.Id,
                     ProductName = i.ProductName,
@@ -139,69 +143,81 @@ namespace _3d_pasatiempos_backend.Application.Services
                     EstimatedTime = i.EstimatedHours,
                     PricePerGram = i.PricePerGramUsed,
                     CostPerKwh = i.CostPerKwhUsed,
-                    CostOverrunFail = i.CostOverrunFailture,
+                    CostOverrunFail = i.CostOverrunFailure,
                     ProfitPercentage = i.ProfitPercentage
                 }).ToList()
             };
         }
 
+
         /// <summary>
-        /// Method used to approve the quotes
+        /// 
         /// </summary>
-        /// <param name="pQuoteId">Quote ID</param>
+        /// <param name="pQuoteId"></param>
         /// <returns></returns>
         public async Task ApproveAsync(int pQuoteId)
         {
-            using var lTransaction = await _Context.Database.BeginTransactionAsync();
-
-            var lQuote = await _QuoteRepository.GetQuoteByIdAsync(pQuoteId) ?? throw new Exception("Quote not found");
-            if (lQuote.Status != QuoteStatus.PENDING)
-                throw new Exception("Only pending quotes can be approved");
-
-            var lExistingOrder = await _OrderRepository.GetOrderByQuoteIdAsync(lQuote.Id);
-            if (lExistingOrder != null)
-                throw new Exception("Order already exists for this quote");
-
-            lQuote.Status = QuoteStatus.APPROVED;
-
-            var lOrder = new Order
+            try
             {
-                QuoteId = lQuote.Id,
-                Status = OrderStatus.PENDING,
-                StartDate = null,
-                EndDate = null
-            };
+                await _UnitOfWork.BeginTransactionAsync();
 
-            await _OrderRepository.AddAsync(lOrder);
-            await _QuoteRepository.UpdateAsync(lQuote);
+                var lQuoteRecord = await _QuoteRepository.GetQuoteByIdAsync(pQuoteId) 
+                    ?? throw new NotFoundException("Quote not found");
 
-            await lTransaction.CommitAsync();
+                if (lQuoteRecord.Status != QuoteStatus.PENDING.ToString())
+                    throw new BadRequestException("Only pending quotes can be approved");
+
+                var lExistsOrder = await _OrderRepository.GetOrderByQuoteIdAsync(pQuoteId);
+                if (lExistsOrder != null)
+                    throw new BadRequestException("Order already exists for this quote");
+
+                lQuoteRecord.Status = QuoteStatus.APPROVED.ToString();
+
+                var lOrder = new Order
+                {
+                    QuoteId = lQuoteRecord.Id,
+                    Status = OrderStatus.PENDING.ToString(),
+                    StartDate = null,
+                    EndDate = null
+                };
+
+                await _OrderRepository.AddAsync(lOrder);
+                await _UnitOfWork.SaveChangesAsync();
+                await _UnitOfWork.CommitAsync();
+            }
+            catch
+            {
+                await _UnitOfWork.RollbackAsync();
+                throw;
+            }      
         }
 
         /// <summary>
-        /// Method used to reject the quotes
+        /// 
         /// </summary>
-        /// <param name="pQuoteId">Quote ID</param>
-        /// <param name="pRejectReason">Reason for rejection</param>
+        /// <param name="pQuoteId"></param>
+        /// <param name="pRejectReason"></param>
         /// <returns></returns>
+        /// <exception cref="NotFoundException"></exception>
+        /// <exception cref="BadRequestException"></exception>
         public async Task RejectAsync(int pQuoteId, string pRejectReason)
         {
-            var lQuote = await _QuoteRepository.GetQuoteByIdAsync(pQuoteId) ?? throw new Exception("Quote not found");
+            var lQuoteRecord = await _QuoteRepository.GetQuoteByIdAsync(pQuoteId) ?? throw new NotFoundException("Quote not found");
 
-            if (lQuote.Status != QuoteStatus.PENDING)
-                throw new Exception("Only pending quotes can be rejected");
+            if (lQuoteRecord.Status != QuoteStatus.PENDING.ToString())
+                throw new BadRequestException("Only pending quotes can be rejected");
 
-            lQuote.Status = QuoteStatus.REJECTED;
-            lQuote.RejectReason = pRejectReason;
+            lQuoteRecord.Status = QuoteStatus.REJECTED.ToString();
+            lQuoteRecord.RejectReason = pRejectReason;
 
-            await _QuoteRepository.UpdateAsync(lQuote);
+            await _UnitOfWork.SaveChangesAsync();
         }
 
         /// <summary>
-        /// Method used to calculate execution time in minutes
+        /// 
         /// </summary>
-        /// <param name="pHours">Approximate hours</param>
-        /// <param name="pMinutes">Approximate minutes</param>
+        /// <param name="pHours"></param>
+        /// <param name="pMinutes"></param>
         /// <returns></returns>
         public int GetEstimatedHours(int pHours, int pMinutes)
         {
@@ -209,10 +225,10 @@ namespace _3d_pasatiempos_backend.Application.Services
         }
 
         /// <summary>
-        /// Method used to calculate the value per gram of material to be used
+        /// 
         /// </summary>
-        /// <param name="pPricePerGram">Current parameterized price</param>
-        /// <param name="pGramUsed">Quantity in grams to use</param>
+        /// <param name="pPricePerGram"></param>
+        /// <param name="pGramUsed"></param>
         /// <returns></returns>
         public decimal GetEstimatedPricePerGram(decimal pPricePerGram, int pGramUsed)
         {
@@ -220,11 +236,11 @@ namespace _3d_pasatiempos_backend.Application.Services
         }
 
         /// <summary>
-        /// Method used to calculate the wear value of the machine used
+        /// 
         /// </summary>
-        /// <param name="pUseCost">Cost of use, parameterized</param>
-        /// <param name="pHours">Approximate hours</param>
-        /// <param name="pMinutes">Approximate minutes</param>
+        /// <param name="pUseCost"></param>
+        /// <param name="pHours"></param>
+        /// <param name="pMinutes"></param>
         /// <returns></returns>
         public decimal GetEstimatedWearMachine(decimal pUseCost, int pHours, int pMinutes)
         {
@@ -233,12 +249,12 @@ namespace _3d_pasatiempos_backend.Application.Services
         }
 
         /// <summary>
-        /// Method used to calculate the energy expenditure in the production of an order
+        /// 
         /// </summary>
-        /// <param name="pPowerKWh">Parameterizable kWh value</param>
-        /// <param name="pPowerWh">Parameterizable Wh value</param>
-        /// <param name="pHours">Approximate hours</param>
-        /// <param name="pMinutes">Approximate minutes</param>
+        /// <param name="pPowerKWh"></param>
+        /// <param name="pPowerWh"></param>
+        /// <param name="pHours"></param>
+        /// <param name="pMinutes"></param>
         /// <returns></returns>
         public decimal GetEstimatedEnergyCost(decimal pPowerKWh, decimal pPowerWh, int pHours, int pMinutes)
         {
@@ -247,13 +263,13 @@ namespace _3d_pasatiempos_backend.Application.Services
         }
 
         /// <summary>
-        /// Method used to calculate the value per manufacturing defect
+        /// 
         /// </summary>
-        /// <param name="pMaterial">Material object</param>
-        /// <param name="pPrinter">Printer object</param>
-        /// <param name="pGramUsed">Quantity in grams to use</param>
-        /// <param name="pHours">Approximate hours</param>
-        /// <param name="pMinutes">Approximate minutes</param>
+        /// <param name="pMaterial"></param>
+        /// <param name="pPrinter"></param>
+        /// <param name="pGramUsed"></param>
+        /// <param name="pHours"></param>
+        /// <param name="pMinutes"></param>
         /// <returns></returns>
         public decimal GetEstimatedOverrunFailture(Material pMaterial, Printer pPrinter, int pGramUsed, int pHours, int pMinutes)
         {
@@ -266,14 +282,14 @@ namespace _3d_pasatiempos_backend.Application.Services
         }
 
         /// <summary>
-        /// Method used to calculate the total value of manufacturing
+        /// 
         /// </summary>
-        /// <param name="pMaterial">Material object</param>
-        /// <param name="pPrinter">Printer object</param>
-        /// <param name="pGramUsed">Quantity in grams to use</param>
-        /// <param name="pHours">Approximate hours</param>
-        /// <param name="pMinutes">pproximate minutes</param>
-        /// <param name="pProfitPercentage">Percentage of profits</param>
+        /// <param name="pMaterial"></param>
+        /// <param name="pPrinter"></param>
+        /// <param name="pGramUsed"></param>
+        /// <param name="pHours"></param>
+        /// <param name="pMinutes"></param>
+        /// <param name="pProfitPercentage"></param>
         /// <returns></returns>
         public decimal GetEstimatedTotalCost(Material pMaterial, Printer pPrinter, int pGramUsed, int pHours, int pMinutes, decimal pProfitPercentage)
         {

@@ -1,52 +1,134 @@
-﻿using _3d_pasatiempos_backend.Application.Dtos.Production;
-using _3d_pasatiempos_backend.Application.Interfaces.OrderInterfaces;
+﻿using _3d_pasatiempos_backend.Application.Dtos.CommonDto;
+using _3d_pasatiempos_backend.Application.Dtos.CustomerDto;
+using _3d_pasatiempos_backend.Application.Dtos.OrderDto;
+using _3d_pasatiempos_backend.Application.Dtos.ProductionDto;
+using _3d_pasatiempos_backend.Application.Dtos.QuoteDto;
+using _3d_pasatiempos_backend.Application.Exceptions.Common;
+using _3d_pasatiempos_backend.Application.Interfaces.Common;
 using _3d_pasatiempos_backend.Application.Interfaces.ProductionInterface;
 using _3d_pasatiempos_backend.Domain.Enums;
-using _3d_pasatiempos_backend.Infrastructure.Persistence.DataContext;
 
 namespace _3d_pasatiempos_backend.Application.Services
 {
     public class ProductionService : IProductionService
     {
-        private readonly AppDbContext _Context;
-        private readonly IOrderRepository _OrderRepository;
         private readonly IProductionRepository _ProductionRepository;
+        private readonly IUnitOfWork _UnitOfWork;
 
-        public ProductionService(AppDbContext pContext, IOrderRepository OrderRepository, IProductionRepository ProductionRepository)
+        public ProductionService(IProductionRepository ProductionRepository, IUnitOfWork UnitOfWork)
         {
-            _Context = pContext;
-            _OrderRepository = OrderRepository;
             _ProductionRepository = ProductionRepository;
+            _UnitOfWork = UnitOfWork;
         }
 
         /// <summary>
-        /// Method that changes the production status, completes the associated order, 
-        /// and additionally realistically updates the grams and time used in production.
+        /// 
         /// </summary>
-        /// <param name="pProductionId">Production ID</param>
-        /// <param name="pRequest">Production real parameters</param>
+        /// <param name="pProductionId"></param>
+        /// <param name="pRequest"></param>
         /// <returns></returns>
-        public async Task CompleteProductionAsync(int pProductionId, CompleteProductionRequest pRequest)
+        public async Task CompleteProductionAsync(int pProductionId, CompleteProductionDto pRequest)
         {
-            using var lTransaction = await _Context.Database.BeginTransactionAsync();
+            try
+            {
+                await _UnitOfWork.BeginTransactionAsync();
 
-            var lProduction = await _ProductionRepository.GetProductionCycleAsync(pProductionId) ?? throw new Exception("Production not found");
-            
-            if (lProduction.Status != ProductionStatus.IN_PROGRESS)
-                throw new Exception("Production is not in progress");
+                var lProductionRecord = await _ProductionRepository.GetProductionDetailByIdAsync(pProductionId)
+                    ?? throw new NotFoundException("Production not found");
 
-            lProduction.Status = ProductionStatus.COMPLETE;
-            lProduction.GramsUsed = pRequest.GramsUsed;
-            // HORAS USADAS | FALTA AGREGAR EL CAMPO A LA TABLA
+                if (lProductionRecord.Status != ProductionStatus.IN_PROGRESS.ToString())
+                    throw new BadRequestException("Production is not in progress");
 
-            var lOrder = lProduction.Order;
-            lOrder.Status = OrderStatus.COMPLETE;
-            lOrder.EndDate = DateTime.UtcNow;
+                lProductionRecord.Status = ProductionStatus.COMPLETE.ToString();
+                lProductionRecord.GramsUsed = pRequest.GramsUsed;
+                lProductionRecord.TimeUsed = (pRequest.ExecutionHours * 60) + pRequest.ExecutionMinutes;
 
-            await _OrderRepository.UpdateAsync(lOrder);
-            await _ProductionRepository.UpdateAsync(lProduction);
+                if (pRequest.OrderFinish)
+                {
+                    var lOrder = lProductionRecord.Order;
+                    lOrder.Status = OrderStatus.COMPLETE.ToString();
+                    lOrder.EndDate = DateTime.UtcNow;
+                }
 
-            await lTransaction.CommitAsync();
+                await _UnitOfWork.SaveChangesAsync();
+                await _UnitOfWork.CommitAsync();
+            }
+            catch
+            {
+                await _UnitOfWork.RollbackAsync();
+                throw;
+            }
+        }
+
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="pQuery"></param>
+        /// <returns></returns>
+        public async Task<PagedResult<ProductionListDto>> GetPagedProductionAsync(QueryParams pQuery)
+        {
+            var (lData, lTotal) = await _ProductionRepository.GetPagedProductionAsync(pQuery);
+
+            var lQueryResult = lData.Select(x => new ProductionListDto
+            {
+                ProductionId = x.Id,
+                StartTime = x.StartTime,
+                EndTime = x.EstimatedEndTime,
+                Status = x.Status
+            });
+
+            return new PagedResult<ProductionListDto>
+            {
+                Items = lQueryResult,
+                TotalCount = lTotal,
+                Page = pQuery.Page,
+                PageSize = pQuery.PageSize
+            };
+        }
+
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="pProductionId"></param>
+        /// <returns></returns>
+        /// <exception cref="NotFoundException"></exception>
+        public async Task<ProductionDetailDto> GetProductionDetailAsync(int pProductionId)
+        {
+            var lProduction = await _ProductionRepository.GetProductionDetailByIdAsync(pProductionId) 
+                ?? throw new NotFoundException("Production not found");
+
+            return new ProductionDetailDto
+            {
+                Status = lProduction.Status,
+                StartDate = lProduction.StartTime,
+                EndDate = lProduction.EstimatedEndTime,
+                GramsUsed = lProduction.GramsUsed,
+                TimeUsed = lProduction.TimeUsed,
+
+                QuoteDetail = new QuoteDetailSimply
+                {
+                    QuoteId = lProduction.Order.QuoteId,
+                    Customer = new DetailCustomerDto
+                    {
+                        Id = lProduction.Order.Quote.Customer.Id,
+                        Name = lProduction.Order.Quote.Customer.Name,
+                        Email = lProduction.Order.Quote.Customer.Email,
+                        Phone = lProduction.Order.Quote.Customer.Phone
+                    },
+
+                    QuoteDate = lProduction.Order.Quote.CreatedAt,
+                    QuoteStatus = lProduction.Order.Quote.Status,
+                    QuoteTotal = lProduction.Order.Quote.Total
+                },
+
+                OrderDetail = new OrderDetailDto
+                {
+                    OrderId = lProduction.OrderId,
+                    Status = lProduction.Order.Status,
+                    StartDate = lProduction.Order.StartDate,
+                    EndDate = lProduction.Order.EndDate
+                }
+            };
         }
     }
 }

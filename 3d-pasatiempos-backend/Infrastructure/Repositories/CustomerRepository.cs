@@ -1,4 +1,5 @@
-﻿using _3d_pasatiempos_backend.Application.Interfaces.CustomerInterfaces;
+﻿using _3d_pasatiempos_backend.Application.Dtos.CommonDto;
+using _3d_pasatiempos_backend.Application.Interfaces.CustomerInterfaces;
 using _3d_pasatiempos_backend.Domain.Entities;
 using _3d_pasatiempos_backend.Infrastructure.Persistence.DataContext;
 using Microsoft.EntityFrameworkCore;
@@ -15,27 +16,35 @@ namespace _3d_pasatiempos_backend.Infrastructure.Repositories
         }
 
         /// <summary>
-        /// Method that uses data access to add clients to the database
+        /// 
         /// </summary>
-        /// <param name="pCustomer">Customer model</param>
+        /// <param name="pCustomer"></param>
         /// <returns></returns>
-        public async Task<bool> AddAsync(Customer pCustomer)
+        public async Task AddAsync(Customer pCustomer)
         {
-            _Context.Customer.Add(pCustomer);
-            var lTxResult = await _Context.SaveChangesAsync();
-
-            if (lTxResult > 0)
-                return true;
-            return false;
+            await _Context.Customer.AddAsync(pCustomer);
         }
 
         /// <summary>
-        /// Method that obtains the list of clients from the database
+        /// 
         /// </summary>
+        /// <param name="pQuery"></param>
         /// <returns></returns>
-        public async Task<List<Customer>> GetAllAsync()
+        public async Task<(List<Customer> Data, int TotalCount)> GetPagedAsync(QueryParams pQuery)
         {
-            return await _Context.Customer.ToListAsync();
+            var lDbQuery = _Context.Customer.AsQueryable();
+
+            if (!string.IsNullOrWhiteSpace(pQuery.Name))
+                lDbQuery = lDbQuery.Where(x => x.Name.Contains(pQuery.Name));
+
+            var lTotalCount = await lDbQuery.CountAsync();
+
+            var lData = await lDbQuery
+                .Skip((pQuery.Page - 1) * pQuery.PageSize)
+                .Take(pQuery.PageSize)
+                .ToListAsync();
+
+            return (lData, lTotalCount);
         }
     }
 }

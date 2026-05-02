@@ -28,6 +28,17 @@ namespace _3d_pasatiempos_backend.Infrastructure.Repositories
         /// <summary>
         /// 
         /// </summary>
+        /// <param name="pCustomerId"></param>
+        /// <returns></returns>
+        public async Task<Customer> GetCustomerByIdAsync(int pCustomerId)
+        {
+            return await _Context.Customer
+                .FirstOrDefaultAsync(x => x.Id == pCustomerId);
+        }
+
+        /// <summary>
+        /// 
+        /// </summary>
         /// <param name="pQuery"></param>
         /// <returns></returns>
         public async Task<(List<Customer> Data, int TotalCount)> GetPagedAsync(QueryParams pQuery)
@@ -35,7 +46,7 @@ namespace _3d_pasatiempos_backend.Infrastructure.Repositories
             var lDbQuery = _Context.Customer.AsQueryable();
 
             if (!string.IsNullOrWhiteSpace(pQuery.Name))
-                lDbQuery = lDbQuery.Where(x => x.Name.Contains(pQuery.Name));
+                lDbQuery = lDbQuery.Where(x => EF.Functions.ILike(x.Name, $"%{pQuery.Name}%"));
 
             var lTotalCount = await lDbQuery.CountAsync();
 

@@ -35,5 +35,17 @@ namespace _3d_pasatiempos_backend.Api.Controllers
             var lCustomerData = await _CustomerService.GetPagedAsync(pQuery);
             return Ok(lCustomerData);
         }
+
+        [HttpPatch("UpdateCustomer")]
+        public async Task<IActionResult> UpdateCustomer([FromBody] CreateCustomerDto pRequest,
+            [FromServices] IValidator<CreateCustomerDto> pValidator)
+        {
+            var lValidationTx = await pValidator.ValidateAsync(pRequest);
+            if (!lValidationTx.IsValid)
+                return BadRequest(lValidationTx.Errors);
+
+            await _CustomerService.UpdateCustomerAsync(pRequest);
+            return NoContent();
+        }
     }
 }

@@ -6,6 +6,7 @@ namespace _3d_pasatiempos_backend.Application.Interfaces.CustomerInterfaces
     public interface ICustomerRepository
     {
         Task AddAsync(Customer pCustomer);
+        Task<Customer> GetCustomerByIdAsync(int pCustomerId);
         Task<(List<Customer> Data, int TotalCount)> GetPagedAsync(QueryParams pQuery);
     }
 }

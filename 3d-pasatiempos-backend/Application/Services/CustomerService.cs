@@ -1,5 +1,6 @@
 ﻿using _3d_pasatiempos_backend.Application.Dtos.CommonDto;
 using _3d_pasatiempos_backend.Application.Dtos.CustomerDto;
+using _3d_pasatiempos_backend.Application.Exceptions.Common;
 using _3d_pasatiempos_backend.Application.Interfaces.Common;
 using _3d_pasatiempos_backend.Application.Interfaces.CustomerInterfaces;
 using _3d_pasatiempos_backend.Domain.Entities;
@@ -36,6 +37,24 @@ namespace _3d_pasatiempos_backend.Application.Services
             await _UnitOfWork.SaveChangesAsync();
 
             return lCustomerRequest.Id;
+        }
+
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="pRequest"></param>
+        /// <returns></returns>
+        /// <exception cref="NotFoundException"></exception>
+        public async Task UpdateCustomerAsync(CreateCustomerDto pRequest)
+        {
+            var lCustomerDetail = await _CustomerRepository.GetCustomerByIdAsync(pRequest.CustomerId)
+                ?? throw new NotFoundException("Customer not found");
+
+            lCustomerDetail.Name = pRequest.Name;
+            lCustomerDetail.Email = pRequest.Email;
+            lCustomerDetail.Phone = pRequest.Phone;
+
+            await _UnitOfWork.SaveChangesAsync();
         }
 
         /// <summary>

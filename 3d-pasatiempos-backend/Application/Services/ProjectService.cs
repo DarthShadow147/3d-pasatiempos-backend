@@ -98,5 +98,39 @@ namespace _3d_pasatiempos_backend.Application.Services
                 }
             };
         }
+
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="pProjectId"></param>
+        /// <param name="pProjectStatus"></param>
+        /// <returns></returns>
+        /// <exception cref="NotFoundException"></exception>
+        public async Task ChangeProjectStatusAsync(int pProjectId, ProjectStatus pProjectStatus)
+        {
+            var lProjectRecord = await _ProjectRepository.GetProjectByIdAsync(pProjectId)
+                ?? throw new NotFoundException("Project not found");
+
+            lProjectRecord.Status = pProjectStatus.ToString();
+            await _UnitOfWork.SaveChangesAsync();
+        }
+
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="pRequest"></param>
+        /// <returns></returns>
+        /// <exception cref="NotFoundException"></exception>
+        public async Task UpdateProjectDetailAsync(CreateProjectDto pRequest)
+        {
+            var lProjectRecord = await _ProjectRepository.GetProjectByIdAsync(pRequest.ProjectId)
+                ?? throw new NotFoundException("Project not found");
+
+            lProjectRecord.Name = pRequest.ProjectName;
+            lProjectRecord.Description = pRequest.Description;
+            lProjectRecord.ImageUrl = pRequest.Image;
+
+            await _UnitOfWork.SaveChangesAsync();
+        }
     }
 }

@@ -60,7 +60,7 @@ namespace _3d_pasatiempos_backend.Application.Services
                 Description = pRequest.Description,
                 Status = ProjectStatus.NO_MODEL.ToString(),
                 ImageUrl = lImagePath ?? string.Empty,
-                CreatedAt = DateTime.UtcNow
+                CreatedAt = DateTime.SpecifyKind(DateTime.UtcNow, DateTimeKind.Local)
             };
 
             await _ProjectRepository.AddAsync(lProject);

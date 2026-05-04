@@ -78,6 +78,8 @@ app.UseMiddleware<ExceptionMiddleware>();
 
 app.UseCors("AllowFrontend");
 
+app.UseStaticFiles();
+
 app.UseHttpsRedirection();
 
 app.UseAuthorization();

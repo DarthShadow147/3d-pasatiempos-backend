@@ -1,5 +1,4 @@
 ﻿using _3d_pasatiempos_backend.Application.Dtos.CommonDto;
-using _3d_pasatiempos_backend.Application.Dtos.CustomerDto;
 using _3d_pasatiempos_backend.Application.Dtos.ProjectDto;
 using _3d_pasatiempos_backend.Application.Interfaces.ProjectInterfaces;
 using _3d_pasatiempos_backend.Domain.Enums;
@@ -34,7 +33,7 @@ namespace _3d_pasatiempos_backend.Api.Controllers
         }
 
         [HttpPost("CreateProject")]
-        public async Task<IActionResult> CreateProject([FromBody] CreateProjectDto pRequest,
+        public async Task<IActionResult> CreateProject([FromForm] CreateProjectDto pRequest,
             [FromServices] IValidator<CreateProjectDto> pValidator)
         {
             var lValidationTx = await pValidator.ValidateAsync(pRequest);
@@ -46,21 +45,14 @@ namespace _3d_pasatiempos_backend.Api.Controllers
         }
 
         [HttpPatch("UpdateProject")]
-        public async Task<IActionResult> UpdateProject([FromBody] CreateProjectDto pRequest,
+        public async Task<IActionResult> UpdateProject([FromForm] CreateProjectDto pRequest, [FromQuery] ProjectStatus pProjectStatus,
             [FromServices] IValidator<CreateProjectDto> pValidator)
         {
             var lValidationTx = await pValidator.ValidateAsync(pRequest);
             if (!lValidationTx.IsValid)
                 return BadRequest(lValidationTx.Errors);
 
-            await _ProjectService.UpdateProjectDetailAsync(pRequest);
-            return NoContent();
-        }
-
-        [HttpPut("ChangeProjectStatus")]
-        public async Task<IActionResult> ChangeProjectStatus(int pProjectId, [FromQuery] ProjectStatus pProjectStatus)
-        {
-            await _ProjectService.ChangeProjectStatusAsync(pProjectId, pProjectStatus);
+            await _ProjectService.UpdateProjectDetailAsync(pRequest, pProjectStatus);
             return NoContent();
         }
     }

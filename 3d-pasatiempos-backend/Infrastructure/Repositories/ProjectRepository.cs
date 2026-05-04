@@ -47,10 +47,10 @@ namespace _3d_pasatiempos_backend.Infrastructure.Repositories
             var lDbQuery = _Context.Project.AsQueryable();
 
             if (!string.IsNullOrWhiteSpace(pQuery.Name))
-                lDbQuery = lDbQuery.Where(x => x.Name.Contains(pQuery.Name));
+                lDbQuery = lDbQuery.Where(x => EF.Functions.ILike(x.Name, $"%{pQuery.Name}%"));
 
             if (!string.IsNullOrWhiteSpace(pQuery.Status))
-                lDbQuery = lDbQuery.Where(x => x.Status.Contains(pQuery.Status));
+                lDbQuery = lDbQuery.Where(x => EF.Functions.ILike(x.Status, $"%{pQuery.Status}%"));
 
             var lTotalCount = await lDbQuery.CountAsync();
 
@@ -58,6 +58,7 @@ namespace _3d_pasatiempos_backend.Infrastructure.Repositories
                 .Include(x => x.Customer)
                 .Skip((pQuery.Page - 1) * pQuery.PageSize)
                 .Take(pQuery.PageSize)
+                .OrderByDescending(x => x.CreatedAt)
                 .ToListAsync();
 
             return (lData, lTotalCount);

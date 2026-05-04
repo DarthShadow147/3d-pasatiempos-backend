@@ -8,7 +8,7 @@ public partial class Project
     public string Description { get; set; } = string.Empty;
     public string Status { get; set; } = string.Empty;
     public string ImageUrl { get; set; } = string.Empty;
-    public DateTime? CreatedAt { get; set; }
+    public DateTime CreatedAt { get; set; }
 
 
     public virtual Customer Customer { get; set; } = null!;

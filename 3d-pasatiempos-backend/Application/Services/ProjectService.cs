@@ -27,13 +27,39 @@ namespace _3d_pasatiempos_backend.Application.Services
         /// <returns></returns>
         public async Task<int> CreateProjectAsync(CreateProjectDto pRequest)
         {
+            string? lImagePath = null;
+
+            if (pRequest.Image != null)
+            {
+                var lFolderPath = Path.Combine(
+                    Directory.GetCurrentDirectory(),
+                    "wwwroot",
+                    "images",
+                    "projects"
+                );
+
+                if (!Directory.Exists(lFolderPath))
+                    Directory.CreateDirectory(lFolderPath);
+
+                var lExtension = Path.GetExtension(pRequest.Image.FileName);
+                var lFileName = $"{Guid.NewGuid()}{lExtension}";
+                var lFullPath = Path.Combine(lFolderPath, lFileName);
+
+                using (var lStream = new FileStream(lFullPath, FileMode.Create))
+                {
+                    await pRequest.Image.CopyToAsync(lStream);
+                }
+
+                lImagePath = $"images/projects/{lFileName}";
+            }
+
             var lProject = new Project
             {
                 CustomerId = pRequest.CustomerId,
                 Name = pRequest.ProjectName,
                 Description = pRequest.Description,
                 Status = ProjectStatus.NO_MODEL.ToString(),
-                ImageUrl = pRequest.Image,
+                ImageUrl = lImagePath ?? string.Empty,
                 CreatedAt = DateTime.UtcNow
             };
 
@@ -57,7 +83,8 @@ namespace _3d_pasatiempos_backend.Application.Services
                 ProjectId = x.Id,
                 CustomerName = x.Customer.Name,
                 ProjectName = x.Name,
-                Status = x.Status
+                Status = x.Status,
+                CreatedAt = x.CreatedAt
             });
 
             return new PagedResult<ProjectListDto>
@@ -102,33 +129,53 @@ namespace _3d_pasatiempos_backend.Application.Services
         /// <summary>
         /// 
         /// </summary>
-        /// <param name="pProjectId"></param>
-        /// <param name="pProjectStatus"></param>
-        /// <returns></returns>
-        /// <exception cref="NotFoundException"></exception>
-        public async Task ChangeProjectStatusAsync(int pProjectId, ProjectStatus pProjectStatus)
-        {
-            var lProjectRecord = await _ProjectRepository.GetProjectByIdAsync(pProjectId)
-                ?? throw new NotFoundException("Project not found");
-
-            lProjectRecord.Status = pProjectStatus.ToString();
-            await _UnitOfWork.SaveChangesAsync();
-        }
-
-        /// <summary>
-        /// 
-        /// </summary>
         /// <param name="pRequest"></param>
         /// <returns></returns>
         /// <exception cref="NotFoundException"></exception>
-        public async Task UpdateProjectDetailAsync(CreateProjectDto pRequest)
+        public async Task UpdateProjectDetailAsync(CreateProjectDto pRequest, ProjectStatus pProjectStatus)
         {
             var lProjectRecord = await _ProjectRepository.GetProjectByIdAsync(pRequest.ProjectId)
                 ?? throw new NotFoundException("Project not found");
 
             lProjectRecord.Name = pRequest.ProjectName;
             lProjectRecord.Description = pRequest.Description;
-            lProjectRecord.ImageUrl = pRequest.Image;
+            lProjectRecord.Status = pProjectStatus.ToString();
+
+            if (pRequest.Image != null)
+            {
+                var lFolderPath = Path.Combine(
+                    Directory.GetCurrentDirectory(),
+                    "wwwroot",
+                    "images",
+                    "projects"
+                );
+
+                if (!Directory.Exists(lFolderPath))
+                    Directory.CreateDirectory(lFolderPath);
+
+                if (!string.IsNullOrEmpty(lProjectRecord.ImageUrl))
+                {
+                    var lOldPath = Path.Combine(
+                        Directory.GetCurrentDirectory(),
+                        "wwwroot",
+                        lProjectRecord.ImageUrl
+                    );
+
+                    if (File.Exists(lOldPath))
+                        File.Delete(lOldPath);
+                }
+
+                var lExtension = Path.GetExtension(pRequest.Image.FileName);
+                var lFileName = $"{Guid.NewGuid()}{lExtension}";
+                var lFullPath = Path.Combine(lFolderPath, lFileName);
+
+                using (var lStream = new FileStream(lFullPath, FileMode.Create))
+                {
+                    await pRequest.Image.CopyToAsync(lStream);
+                }
+
+                lProjectRecord.ImageUrl = $"images/projects/{lFileName}";
+            }
 
             await _UnitOfWork.SaveChangesAsync();
         }

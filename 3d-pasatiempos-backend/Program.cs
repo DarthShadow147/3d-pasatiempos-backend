@@ -6,6 +6,7 @@ using _3d_pasatiempos_backend.Application.Interfaces.PaymentInterfaces;
 using _3d_pasatiempos_backend.Application.Interfaces.ProductionInterface;
 using _3d_pasatiempos_backend.Application.Interfaces.ProjectInterfaces;
 using _3d_pasatiempos_backend.Application.Interfaces.QuoteInterfaces;
+using _3d_pasatiempos_backend.Application.Interfaces.Utils;
 using _3d_pasatiempos_backend.Application.Services;
 using _3d_pasatiempos_backend.Application.Validators;
 using _3d_pasatiempos_backend.Infrastructure.Persistence.DataContext;
@@ -38,6 +39,8 @@ builder.Services.AddScoped<IProjectRepository, ProjectRepository>();
 builder.Services.AddScoped<IProjectService, ProjectService>();
 builder.Services.AddScoped<IQuoteRepository, QuoteRepository>();
 builder.Services.AddScoped<IQuoteService, QuoteService>();
+builder.Services.AddScoped<IUtilsRepository, UtilsRepository>();
+builder.Services.AddScoped<IUtilsService, UtilsService>();
 
 builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
 

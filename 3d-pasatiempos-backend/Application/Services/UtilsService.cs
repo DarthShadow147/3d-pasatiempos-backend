@@ -100,5 +100,23 @@ namespace _3d_pasatiempos_backend.Application.Services
                         Name = x.Name
                     });
         }
+
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="pQueryParams"></param>
+        /// <returns></returns>
+        public async Task<PagedResult<UtilDto>> GetProjectAsync(QueryParams pQueryParams)
+        {
+            var lQuery = _UtilsRepository.GetFilteredQuery<Project>(pQueryParams);
+
+            return await PaginateAsync(
+                lQuery, pQueryParams,
+                    x => new UtilDto
+                    {
+                        Id = x.Id,
+                        Name = x.Name
+                    });
+        }
     }
 }

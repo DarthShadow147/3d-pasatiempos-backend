@@ -81,8 +81,10 @@ namespace _3d_pasatiempos_backend.Application.Services
             var lQueryResult = lData.Select(x => new ProjectListDto
             {
                 ProjectId = x.Id,
+                CustomerId = x.CustomerId,
                 CustomerName = x.Customer.Name,
                 ProjectName = x.Name,
+                Description = x.Description,
                 Status = x.Status,
                 CreatedAt = x.CreatedAt
             });

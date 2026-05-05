@@ -35,5 +35,12 @@ namespace _3d_pasatiempos_backend.Api.Controllers
             var lQueryData = await _UtilsService.GetPrinterAsync(pQuery);
             return Ok(lQueryData);
         }
+
+        [HttpGet("GetProject")]
+        public async Task<IActionResult> GetProjects([FromQuery] QueryParams pQuery)
+        {
+            var lQueryData = await _UtilsService.GetProjectAsync(pQuery);
+            return Ok(lQueryData);
+        }
     }
 }

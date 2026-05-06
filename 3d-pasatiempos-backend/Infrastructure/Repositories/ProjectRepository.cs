@@ -49,9 +49,6 @@ namespace _3d_pasatiempos_backend.Infrastructure.Repositories
             if (!string.IsNullOrWhiteSpace(pQuery.Name))
                 lDbQuery = lDbQuery.Where(x => EF.Functions.ILike(x.Name, $"%{pQuery.Name}%"));
 
-            if (!string.IsNullOrWhiteSpace(pQuery.Status))
-                lDbQuery = lDbQuery.Where(x => EF.Functions.ILike(x.Status, $"%{pQuery.Status}%"));
-
             var lTotalCount = await lDbQuery.CountAsync();
 
             var lData = await lDbQuery

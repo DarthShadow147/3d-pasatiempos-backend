@@ -3,6 +3,7 @@ using _3d_pasatiempos_backend.Application.Interfaces.Utils;
 using _3d_pasatiempos_backend.Domain.Entities;
 using _3d_pasatiempos_backend.Infrastructure.Persistence.DataContext;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Metadata.Internal;
 
 namespace _3d_pasatiempos_backend.Infrastructure.Repositories
 {
@@ -30,6 +31,13 @@ namespace _3d_pasatiempos_backend.Infrastructure.Repositories
                 lDbSet = lDbSet.Where(x => 
                 EF.Functions.ILike(
                     EF.Property<string>(x, "Name"), $"%{pQuery.Name}%"));
+            }
+
+            if (!string.IsNullOrWhiteSpace(pQuery.Status) && 
+                int.TryParse(pQuery.Status, out int lCustomerId))
+            {
+                lDbSet = lDbSet.Where(x =>
+                    EF.Property<int>(x, "CustomerId") == lCustomerId);
             }
 
             return lDbSet;

@@ -42,7 +42,7 @@ namespace _3d_pasatiempos_backend.Application.Services
             {
                 CustomerId = pRequest.CustomerId,
                 ProjectId = pRequest.ProjectId,
-                CreatedAt = DateTime.UtcNow,
+                CreatedAt = DateTime.SpecifyKind(DateTime.UtcNow, DateTimeKind.Local),
                 Status = QuoteStatus.PENDING.ToString(),
                 QuoteItem = []
             };

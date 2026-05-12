@@ -10,6 +10,8 @@ public partial class AppDbContext : DbContext
     {
     }
 
+    public virtual DbSet<AggregateCost> AggregateCost { get; set; }
+    public virtual DbSet<CalendarEvent> CalendarEvent { get; set; }
     public virtual DbSet<Customer> Customer { get; set; }
     public virtual DbSet<Expense> Expense { get; set; }
     public virtual DbSet<Material> Material { get; set; }
@@ -44,6 +46,7 @@ public partial class AppDbContext : DbContext
                 .HasMaxLength(150)
                 .HasColumnName("name");
             entity.Property(e => e.Phone)
+                .IsRequired()
                 .HasMaxLength(50)
                 .HasColumnName("phone");
         });
@@ -284,41 +287,114 @@ public partial class AppDbContext : DbContext
 
             entity.HasIndex(e => e.QuoteId, "idx_quote_item_quote_id");
 
-            entity.Property(e => e.Id).HasColumnName("id");
+            entity.Property(e => e.Id)
+                .HasColumnName("id");
+
             entity.Property(e => e.CalculatedPrice)
                 .HasPrecision(12, 2)
+                .HasDefaultValue(0)
                 .HasColumnName("calculated_price");
+
             entity.Property(e => e.CostOverrunFailure)
                 .HasPrecision(10, 2)
-                .HasDefaultValue(0m)
                 .HasColumnName("cost_overrun_failure");
+
             entity.Property(e => e.CostPerKwhUsed)
                 .HasPrecision(10, 2)
                 .HasColumnName("cost_per_kwh_used");
+
             entity.Property(e => e.EstimatedGrams)
                 .HasPrecision(10, 2)
                 .HasColumnName("estimated_grams");
+
             entity.Property(e => e.EstimatedHours)
                 .HasPrecision(10, 2)
                 .HasColumnName("estimated_hours");
+
             entity.Property(e => e.MachineWearCostUsed)
                 .HasPrecision(10, 2)
                 .HasColumnName("machine_wear_cost_used");
+
             entity.Property(e => e.PricePerGramUsed)
                 .HasPrecision(10, 2)
                 .HasColumnName("price_per_gram_used");
+
             entity.Property(e => e.ProductName)
                 .HasMaxLength(150)
                 .HasColumnName("product_name");
+
             entity.Property(e => e.ProfitPercentage)
                 .HasPrecision(5, 2)
-                .HasDefaultValue(0m)
                 .HasColumnName("profit_percentage");
-            entity.Property(e => e.QuoteId).HasColumnName("quote_id");
+
+            entity.Property(e => e.QuoteId)
+                .HasColumnName("quote_id");
+
+            entity.Property(x => x.ShippingCost)
+                .HasPrecision(10, 2)
+                .HasDefaultValue(0)
+                .HasColumnName("shipping_cost");
+
+            entity.Property(x => x.ModelCost)
+                .HasPrecision(10, 2)
+                .HasDefaultValue(0)
+                .HasColumnName("model_cost");
+
+            entity.Property(x => x.PaintCost)
+                .HasPrecision(10, 2)
+                .HasDefaultValue(0)
+                .HasColumnName("paint_cost");
+
+            entity.Property(x => x.HardwareCost)
+                .HasPrecision(10, 2)
+                .HasDefaultValue(0)
+                .HasColumnName("hardware_cost");
+
+            entity.Property(x => x.PackingCost)
+                .HasPrecision(10, 2)
+                .HasDefaultValue(0)
+                .HasColumnName("packing_cost");
 
             entity.HasOne(d => d.Quote).WithMany(p => p.QuoteItem)
                 .HasForeignKey(d => d.QuoteId)
                 .HasConstraintName("fk_quote_item_quote");
+        });
+
+        modelBuilder.Entity<AggregateCost>(entity =>
+        {
+            entity.ToTable("aggregate_cost", "app");
+
+            entity.Property(x => x.CostName)
+                .HasMaxLength(30);
+
+            entity.Property(x => x.CostValue)
+                .HasPrecision(10, 2);
+
+            entity.Property(x => x.UnitCost)
+                .HasPrecision(10, 2);
+        });
+
+        modelBuilder.Entity<CalendarEvent>(entity =>
+        {
+            entity.ToTable("calendar_events", "app");
+
+            entity.Property(x => x.EventName)
+                .HasMaxLength(60);
+
+            entity.Property(x => x.EventType)
+                .HasMaxLength(30);
+
+            entity.Property(x => x.StartDate)
+                .HasColumnType("timestamp with time zone")
+                .HasConversion(
+                    v => v.ToUniversalTime(),
+                    v => DateTime.SpecifyKind(v, DateTimeKind.Utc));
+
+            entity.Property(x => x.EndDate)
+                .HasColumnType("timestamp with time zone")
+                .HasConversion(
+                    v => v.ToUniversalTime(),
+                    v => DateTime.SpecifyKind(v, DateTimeKind.Utc));
         });
 
         OnModelCreatingPartial(modelBuilder);

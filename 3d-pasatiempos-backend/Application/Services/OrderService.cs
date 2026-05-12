@@ -39,15 +39,14 @@ namespace _3d_pasatiempos_backend.Application.Services
                 if (lOrderRecord.Status != OrderStatus.PENDING.ToString())
                     throw new BadRequestException("Only pending orders can be started");
 
-                var lTotalEstimatedHours = lOrderRecord.Quote.QuoteItem
+                decimal? lTotalEstimatedHours = lOrderRecord.Quote.QuoteItem
                     .Sum(i => i.EstimatedHours);
 
-                var lNow = DateTime.UtcNow;
+                var lNow = DateTime.SpecifyKind(DateTime.UtcNow, DateTimeKind.Local);
 
                 lOrderRecord.Status = OrderStatus.IN_PROGRESS.ToString();
                 lOrderRecord.StartDate = lNow;
 
-#pragma warning disable 
                 var lProduction = new Production
                 {
                     OrderId = pOrderId,
@@ -55,7 +54,6 @@ namespace _3d_pasatiempos_backend.Application.Services
                     EstimatedEndTime = lNow.AddMinutes((double)lTotalEstimatedHours),
                     Status = ProductionStatus.IN_PROGRESS.ToString()
                 };
-#pragma warning restore
 
                 await _ProductionRepository.AddAsync(lProduction);
                 await _UnitOfWork.SaveChangesAsync();

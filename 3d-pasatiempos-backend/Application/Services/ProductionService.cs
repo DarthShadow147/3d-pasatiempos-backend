@@ -47,7 +47,7 @@ namespace _3d_pasatiempos_backend.Application.Services
                 {
                     var lOrder = lProductionRecord.Order;
                     lOrder.Status = OrderStatus.COMPLETE.ToString();
-                    lOrder.EndDate = DateTime.UtcNow;
+                    lOrder.EndDate = DateTime.SpecifyKind(DateTime.UtcNow, DateTimeKind.Local);
                 }
 
                 await _UnitOfWork.SaveChangesAsync();

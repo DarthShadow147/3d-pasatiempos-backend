@@ -5,6 +5,7 @@ public partial class Quote
     public int Id { get; set; }
     public int CustomerId { get; set; }
     public int? ProjectId { get; set; }
+    public string? QuoteName { get; set; }
     public DateTime CreatedAt { get; set; }
     public string Status { get; set; } = string.Empty;
     public decimal? Total { get; set; }

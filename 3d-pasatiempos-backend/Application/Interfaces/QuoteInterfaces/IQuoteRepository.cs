@@ -10,5 +10,6 @@ namespace _3d_pasatiempos_backend.Application.Interfaces.QuoteInterfaces
         Task<(List<Quote> Data, int TotalCount)> GetPagedQuoteAsync(QueryParams pQuery);
         Task<Material> GetMaterialDetail(int pMaterialId);
         Task<Printer> GetPrinterDetail(int pPrinterId);
+        Task<List<AggregateCost>> GetAggregateCostDetailsAsync();
     }
 }

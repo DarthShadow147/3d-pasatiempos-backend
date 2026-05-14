@@ -254,17 +254,25 @@ public partial class AppDbContext : DbContext
             entity.HasIndex(e => e.ProjectId, "idx_quote_project_id");
 
             entity.Property(e => e.Id).HasColumnName("id");
+
             entity.Property(e => e.CreatedAt)
                 .HasDefaultValueSql("CURRENT_TIMESTAMP")
                 .HasColumnType("timestamp without time zone")
                 .HasColumnName("created_at");
+
             entity.Property(e => e.CustomerId).HasColumnName("customer_id");
+
             entity.Property(e => e.ProjectId).HasColumnName("project_id");
+
+            entity.Property(e => e.QuoteName).HasColumnName("quote_name");
+
             entity.Property(e => e.RejectReason).HasColumnName("reject_reason");
+
             entity.Property(e => e.Status)
                 .IsRequired()
                 .HasMaxLength(50)
                 .HasColumnName("status");
+
             entity.Property(e => e.Total)
                 .HasPrecision(12, 2)
                 .HasColumnName("total");
@@ -364,14 +372,20 @@ public partial class AppDbContext : DbContext
         {
             entity.ToTable("aggregate_cost", "app");
 
-            entity.Property(x => x.CostName)
-                .HasMaxLength(30);
+            entity.Property(e => e.Id)
+                .HasColumnName("id");
 
+            entity.Property(x => x.CostName)
+                .HasMaxLength(30)
+                .HasColumnName("cost_name");
+            
             entity.Property(x => x.CostValue)
-                .HasPrecision(10, 2);
+                .HasPrecision(10, 2)
+                .HasColumnName("cost_value");
 
             entity.Property(x => x.UnitCost)
-                .HasPrecision(10, 2);
+                .HasPrecision(10, 2)
+                .HasColumnName("unit_cost");
         });
 
         modelBuilder.Entity<CalendarEvent>(entity =>

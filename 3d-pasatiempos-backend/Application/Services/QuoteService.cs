@@ -1,4 +1,5 @@
-﻿using _3d_pasatiempos_backend.Application.Dtos.CommonDto;
+﻿using _3d_pasatiempos_backend.Application.Dtos.AggregateCostDto;
+using _3d_pasatiempos_backend.Application.Dtos.CommonDto;
 using _3d_pasatiempos_backend.Application.Dtos.CustomerDto;
 using _3d_pasatiempos_backend.Application.Dtos.ProjectDto;
 using _3d_pasatiempos_backend.Application.Dtos.QuoteDto;
@@ -35,6 +36,9 @@ namespace _3d_pasatiempos_backend.Application.Services
             var lMaterial = await _QuoteRepository.GetMaterialDetail(pRequest.Material);
             var lPrinter = await _QuoteRepository.GetPrinterDetail(pRequest.Printer);
 
+            var lAggregateCost = await _QuoteRepository.GetAggregateCostDetailsAsync();
+            var lExtraCost = GetAdditionalCosts(pRequest, lAggregateCost);
+
             if (lMaterial == null || lPrinter == null)
                 throw new NotFoundException("Printer or Material are missing");
 
@@ -42,6 +46,7 @@ namespace _3d_pasatiempos_backend.Application.Services
             {
                 CustomerId = pRequest.CustomerId,
                 ProjectId = pRequest.ProjectId,
+                QuoteName = pRequest.QuoteName,
                 CreatedAt = DateTime.SpecifyKind(DateTime.UtcNow, DateTimeKind.Local),
                 Status = QuoteStatus.PENDING.ToString(),
                 QuoteItem = []
@@ -60,10 +65,22 @@ namespace _3d_pasatiempos_backend.Application.Services
                     CostPerKwhUsed = GetEstimatedEnergyCost(lPrinter.PowerConsumptionKwh, lPrinter.PowerConsumptionWh, lItem.Hours, lItem.Minutes),
                     MachineWearCostUsed = GetEstimatedWearMachine(lPrinter.CostPerMinute, lItem.Hours, lItem.Minutes),
                     CostOverrunFailure = GetEstimatedOverrunFailture(lMaterial, lPrinter, lItem.Grams, lItem.Hours, lItem.Minutes),
-                    ProfitPercentage = pRequest.ProfitPercentage
+                    ProfitPercentage = pRequest.ProfitPercentage,
+
+                    ShippingCost = lExtraCost.ShippingCost,
+                    ModelCost = lExtraCost.ModelCost,
+                    PaintCost = lExtraCost.PaintCost,
+                    HardwareCost = lExtraCost.HardwareCost,
+                    PackingCost = lExtraCost.PackingCost
                 };
 
-                lTotal += (decimal)lQuoteItem.CalculatedPrice;
+                lTotal += (decimal)lQuoteItem.CalculatedPrice 
+                        + lQuoteItem.ShippingCost 
+                        + lQuoteItem.ModelCost
+                        + lQuoteItem.PaintCost
+                        + lQuoteItem.HardwareCost
+                        + lQuoteItem.PackingCost;
+
                 lQuote.QuoteItem.Add(lQuoteItem);
             }
 
@@ -111,7 +128,8 @@ namespace _3d_pasatiempos_backend.Application.Services
         /// <exception cref="NotFoundException"></exception>
         public async Task<QuoteDetailDto> GetQuoteDetailAsync(int pQuoteId)
         {
-            var lQuote = await _QuoteRepository.GetQuoteByIdAsync(pQuoteId) ?? throw new NotFoundException("Quote not found");
+            var lQuote = await _QuoteRepository.GetQuoteByIdAsync(pQuoteId) 
+                ?? throw new NotFoundException("Quote not found");
 
             return new QuoteDetailDto
             {
@@ -211,6 +229,42 @@ namespace _3d_pasatiempos_backend.Application.Services
             lQuoteRecord.RejectReason = pRejectReason;
 
             await _UnitOfWork.SaveChangesAsync();
+        }
+
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="pRequest"></param>
+        /// <param name="pCostList"></param>
+        /// <returns></returns>
+        public AdditionalCosts GetAdditionalCosts(CreateQuoteDto pRequest, List<AggregateCost> pCostList)
+        {
+            var lShippingCost = pRequest.NeedShipping
+                ? pCostList.FirstOrDefault(c => c.CostName == "ENVIOS")?.CostValue ?? 0
+                : 0;
+
+            var lModelCost = pRequest.NeedModel
+                ? pCostList.FirstOrDefault(c => c.CostName == "MODELAJE")?.CostValue ?? 0
+                : 0;
+
+            var lPaintCost = pRequest.NeedPaint
+                ? pCostList.FirstOrDefault(c => c.CostName == "PINTURA")?.CostValue ?? 0
+                : 0;
+
+            var lHardwareCost = pRequest.KeyChainQuantity.HasValue
+                ? (pCostList.FirstOrDefault(c => c.CostName == "HERRAJES")?.UnitCost ?? 0) * pRequest.KeyChainQuantity.Value
+                : 0;
+
+            var lPackingCost = pCostList.FirstOrDefault(c => c.CostName == "CAJAS")?.CostValue ?? 0;
+
+            return new AdditionalCosts
+            {
+                ShippingCost = lShippingCost,
+                ModelCost = lModelCost,
+                PaintCost = lPaintCost,
+                HardwareCost = lHardwareCost,
+                PackingCost = lPackingCost
+            };
         }
 
         /// <summary>

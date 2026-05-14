@@ -1,4 +1,5 @@
-﻿using _3d_pasatiempos_backend.Application.Dtos.CommonDto;
+﻿using _3d_pasatiempos_backend.Application.Dtos.AggregateCostDto;
+using _3d_pasatiempos_backend.Application.Dtos.CommonDto;
 using _3d_pasatiempos_backend.Application.Dtos.QuoteDto;
 using _3d_pasatiempos_backend.Domain.Entities;
 
@@ -11,6 +12,7 @@ namespace _3d_pasatiempos_backend.Application.Interfaces.QuoteInterfaces
         Task<QuoteDetailDto> GetQuoteDetailAsync(int pQuoteId);
         Task ApproveAsync(int pQuoteId);
         Task RejectAsync(int pQuoteId, string pRejectReason);
+        AdditionalCosts GetAdditionalCosts(CreateQuoteDto pRequest, List<AggregateCost> pCostList);
         int GetEstimatedHours(int pHours, int pMinutes);
         decimal GetEstimatedPricePerGram(decimal pPricePerGram, int pGramUsed);
         decimal GetEstimatedWearMachine(decimal pUseCost, int pHours, int pMinutes);

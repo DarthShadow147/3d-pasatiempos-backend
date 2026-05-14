@@ -85,5 +85,15 @@ namespace _3d_pasatiempos_backend.Infrastructure.Repositories
             return await _Context.Printer
                 .FirstOrDefaultAsync(x => x.Id == pPrinterId);
         }
+
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <returns></returns>
+        public async Task<List<AggregateCost>> GetAggregateCostDetailsAsync()
+        {
+            return await _Context.AggregateCost
+                .ToListAsync();
+        }
     }
 }

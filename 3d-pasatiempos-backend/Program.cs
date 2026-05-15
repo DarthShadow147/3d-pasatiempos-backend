@@ -1,4 +1,5 @@
 using _3d_pasatiempos_backend.Api.Middleware;
+using _3d_pasatiempos_backend.Application.Interfaces.CalendarEventInterfaces;
 using _3d_pasatiempos_backend.Application.Interfaces.Common;
 using _3d_pasatiempos_backend.Application.Interfaces.CustomerInterfaces;
 using _3d_pasatiempos_backend.Application.Interfaces.OrderInterfaces;
@@ -27,6 +28,8 @@ builder.Services.AddValidatorsFromAssemblyContaining<CreateQuoteValidator>();
 builder.Services.AddValidatorsFromAssemblyContaining<CreateQuoteItemRequestValidator>();
 
 //DI
+builder.Services.AddScoped<ICalendarEventsRepository, CalendarEventsRepository>();
+builder.Services.AddScoped<ICalendarEventsService, CalendarEventsService>();
 builder.Services.AddScoped<ICustomerRepository, CustomerRepository>();
 builder.Services.AddScoped<ICustomerService, CustomerService>();
 builder.Services.AddScoped<IOrderRepository, OrderRepository>();

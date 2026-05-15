@@ -392,23 +392,30 @@ public partial class AppDbContext : DbContext
         {
             entity.ToTable("calendar_events", "app");
 
+            entity.Property(x => x.Id)
+                .HasColumnName("id");
+
             entity.Property(x => x.EventName)
-                .HasMaxLength(60);
+                .HasMaxLength(60)
+                .HasColumnName("event_name");
 
             entity.Property(x => x.EventType)
-                .HasMaxLength(30);
+                .HasMaxLength(30)
+                .HasColumnName("event_type");
 
             entity.Property(x => x.StartDate)
                 .HasColumnType("timestamp with time zone")
                 .HasConversion(
                     v => v.ToUniversalTime(),
-                    v => DateTime.SpecifyKind(v, DateTimeKind.Utc));
+                    v => DateTime.SpecifyKind(v, DateTimeKind.Utc))
+                .HasColumnName("start_date");
 
             entity.Property(x => x.EndDate)
                 .HasColumnType("timestamp with time zone")
                 .HasConversion(
                     v => v.ToUniversalTime(),
-                    v => DateTime.SpecifyKind(v, DateTimeKind.Utc));
+                    v => DateTime.SpecifyKind(v, DateTimeKind.Utc))
+                .HasColumnName("end_date");
         });
 
         OnModelCreatingPartial(modelBuilder);

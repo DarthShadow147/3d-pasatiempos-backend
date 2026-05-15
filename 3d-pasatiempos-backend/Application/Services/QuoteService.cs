@@ -33,63 +33,74 @@ namespace _3d_pasatiempos_backend.Application.Services
         /// <exception cref="NotFoundException"></exception>
         public async Task<int> CreateQuoteAsync(CreateQuoteDto pRequest)
         {
-            var lMaterial = await _QuoteRepository.GetMaterialDetail(pRequest.Material);
-            var lPrinter = await _QuoteRepository.GetPrinterDetail(pRequest.Printer);
-
-            var lAggregateCost = await _QuoteRepository.GetAggregateCostDetailsAsync();
-            var lExtraCost = GetAdditionalCosts(pRequest, lAggregateCost);
-
-            if (lMaterial == null || lPrinter == null)
-                throw new NotFoundException("Printer or Material are missing");
-
-            var lQuote = new Quote
+            try
             {
-                CustomerId = pRequest.CustomerId,
-                ProjectId = pRequest.ProjectId,
-                QuoteName = pRequest.QuoteName,
-                CreatedAt = DateTime.SpecifyKind(DateTime.UtcNow, DateTimeKind.Local),
-                Status = QuoteStatus.PENDING.ToString(),
-                QuoteItem = []
-            };
+                await _UnitOfWork.BeginTransactionAsync();
 
-            decimal lTotal = 0;
-            foreach (var lItem in pRequest.Items)
-            {
-                var lQuoteItem = new QuoteItem
+                var lMaterial = await _QuoteRepository.GetMaterialDetail(pRequest.Material);
+                var lPrinter = await _QuoteRepository.GetPrinterDetail(pRequest.Printer);
+
+                var lAggregateCost = await _QuoteRepository.GetAggregateCostDetailsAsync();
+                var lExtraCost = GetAdditionalCosts(pRequest, lAggregateCost);
+
+                if (lMaterial == null || lPrinter == null)
+                    throw new NotFoundException("Printer or Material are missing");
+
+                var lQuote = new Quote
                 {
-                    ProductName = lItem.ProductName,
-                    EstimatedGrams = lItem.Grams,
-                    EstimatedHours = GetEstimatedHours(lItem.Hours, lItem.Minutes),
-                    CalculatedPrice = GetEstimatedTotalCost(lMaterial, lPrinter, lItem.Grams, lItem.Hours, lItem.Minutes, pRequest.ProfitPercentage),
-                    PricePerGramUsed = GetEstimatedPricePerGram(lMaterial.PricePerGram, lItem.Grams),
-                    CostPerKwhUsed = GetEstimatedEnergyCost(lPrinter.PowerConsumptionKwh, lPrinter.PowerConsumptionWh, lItem.Hours, lItem.Minutes),
-                    MachineWearCostUsed = GetEstimatedWearMachine(lPrinter.CostPerMinute, lItem.Hours, lItem.Minutes),
-                    CostOverrunFailure = GetEstimatedOverrunFailture(lMaterial, lPrinter, lItem.Grams, lItem.Hours, lItem.Minutes),
-                    ProfitPercentage = pRequest.ProfitPercentage,
-
-                    ShippingCost = lExtraCost.ShippingCost,
-                    ModelCost = lExtraCost.ModelCost,
-                    PaintCost = lExtraCost.PaintCost,
-                    HardwareCost = lExtraCost.HardwareCost,
-                    PackingCost = lExtraCost.PackingCost
+                    CustomerId = pRequest.CustomerId,
+                    ProjectId = pRequest.ProjectId,
+                    QuoteName = pRequest.QuoteName,
+                    CreatedAt = DateTime.SpecifyKind(DateTime.UtcNow, DateTimeKind.Local),
+                    Status = QuoteStatus.PENDING.ToString(),
+                    QuoteItem = []
                 };
 
-                lTotal += (decimal)lQuoteItem.CalculatedPrice 
-                        + lQuoteItem.ShippingCost 
-                        + lQuoteItem.ModelCost
-                        + lQuoteItem.PaintCost
-                        + lQuoteItem.HardwareCost
-                        + lQuoteItem.PackingCost;
+                decimal lTotal = 0;
+                foreach (var lItem in pRequest.Items)
+                {
+                    var lQuoteItem = new QuoteItem
+                    {
+                        ProductName = lItem.ProductName,
+                        EstimatedGrams = lItem.Grams,
+                        EstimatedHours = GetEstimatedHours(lItem.Hours, lItem.Minutes),
+                        CalculatedPrice = GetEstimatedTotalCost(lMaterial, lPrinter, lItem.Grams, lItem.Hours, lItem.Minutes, pRequest.ProfitPercentage),
+                        PricePerGramUsed = GetEstimatedPricePerGram(lMaterial.PricePerGram, lItem.Grams),
+                        CostPerKwhUsed = GetEstimatedEnergyCost(lPrinter.PowerConsumptionKwh, lPrinter.PowerConsumptionWh, lItem.Hours, lItem.Minutes),
+                        MachineWearCostUsed = GetEstimatedWearMachine(lPrinter.CostPerMinute, lItem.Hours, lItem.Minutes),
+                        CostOverrunFailure = GetEstimatedOverrunFailture(lMaterial, lPrinter, lItem.Grams, lItem.Hours, lItem.Minutes),
+                        ProfitPercentage = pRequest.ProfitPercentage,
 
-                lQuote.QuoteItem.Add(lQuoteItem);
+                        ShippingCost = lExtraCost.ShippingCost,
+                        ModelCost = lExtraCost.ModelCost,
+                        PaintCost = lExtraCost.PaintCost,
+                        HardwareCost = lExtraCost.HardwareCost,
+                        PackingCost = lExtraCost.PackingCost
+                    };
+
+                    lTotal += lQuoteItem.CalculatedPrice
+                            + lQuoteItem.ShippingCost
+                            + lQuoteItem.ModelCost
+                            + lQuoteItem.PaintCost
+                            + lQuoteItem.HardwareCost
+                            + lQuoteItem.PackingCost;
+
+                    lQuote.QuoteItem.Add(lQuoteItem);
+                }
+
+                lQuote.Total = lTotal;
+
+                await _QuoteRepository.AddAsync(lQuote);
+                await _UnitOfWork.SaveChangesAsync();
+                await _UnitOfWork.CommitAsync();
+
+                return lQuote.Id;
             }
-
-            lQuote.Total = lTotal;
-
-            await _QuoteRepository.AddAsync(lQuote);
-            await _UnitOfWork.SaveChangesAsync();
-
-            return lQuote.Id;
+            catch
+            {
+                await _UnitOfWork.RollbackAsync();
+                throw;
+            }
         }
 
         /// <summary>

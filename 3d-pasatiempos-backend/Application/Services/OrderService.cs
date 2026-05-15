@@ -1,6 +1,7 @@
 ﻿using _3d_pasatiempos_backend.Application.Dtos.CommonDto;
 using _3d_pasatiempos_backend.Application.Dtos.OrderDto;
 using _3d_pasatiempos_backend.Application.Exceptions.Common;
+using _3d_pasatiempos_backend.Application.Interfaces.CalendarEventInterfaces;
 using _3d_pasatiempos_backend.Application.Interfaces.Common;
 using _3d_pasatiempos_backend.Application.Interfaces.OrderInterfaces;
 using _3d_pasatiempos_backend.Application.Interfaces.ProductionInterface;
@@ -11,12 +12,18 @@ namespace _3d_pasatiempos_backend.Application.Services
 {
     public class OrderService : IOrderService
     {
+        private readonly ICalendarEventsRepository _EventsRepository;
         private readonly IOrderRepository _OrderRepository;
         private readonly IProductionRepository _ProductionRepository;
         private readonly IUnitOfWork _UnitOfWork;
 
-        public OrderService(IOrderRepository OrderRepository, IProductionRepository ProductionRepository, IUnitOfWork UnitOfWork)
+        public OrderService(
+            ICalendarEventsRepository EventsRepository,
+            IOrderRepository OrderRepository, 
+            IProductionRepository ProductionRepository, 
+            IUnitOfWork UnitOfWork)
         {
+            _EventsRepository = EventsRepository;
             _OrderRepository = OrderRepository;
             _ProductionRepository = ProductionRepository;
             _UnitOfWork = UnitOfWork;
